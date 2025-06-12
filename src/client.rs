@@ -46,9 +46,9 @@ impl Client {
     ) -> Result<RawResponse> {
         let options = options.unwrap_or_default();
         let mut url = self.endpoint.clone();
-        url = url.join(&api_path)?;
+        url = url.join(api_path)?;
         url.query_pairs_mut()
-            .append_pair("api-version", &api_version);
+            .append_pair("api-version", api_version);
         let mut request = Request::new(url, method);
         request.insert_header("accept", "application/json");
 
