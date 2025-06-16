@@ -1,6 +1,7 @@
 use azure::client::Client;
-use azure_core::http::Method::Get;
+use azure_core::http::Method::{Delete, Get, Put};
 use azure_identity::DefaultAzureCredential;
+use bytes::Bytes;
 use clap::Parser;
 use std::error::Error;
 
@@ -14,6 +15,9 @@ struct Args {
 
     #[arg(short, long)]
     api_version: String,
+
+    #[arg(short, long)]
+    body: Option<Bytes>,
 }
 
 #[tokio::main]
@@ -22,8 +26,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let credential = DefaultAzureCredential::new()?;
     let client = Client::new("https://management.azure.com", credential, None)?;
-    let resp = client.run(Get, &args.id, &args.api_version, None).await?;
-    let body = resp.into_body().collect_string().await?;
-    print!("{}", body);
+    let resp = client
+        .run(Put, &args.id, &args.api_version, args.body, None)
+        .await?;
+    println!("PUT response: {}", String::from_utf8(resp.body.to_vec())?);
+
+    let resp = client
+        .run(Get, &args.id, &args.api_version, None, None)
+        .await?;
+    println!("GET response: {}", String::from_utf8(resp.body.to_vec())?);
+
+    let resp = client
+        .run(Delete, &args.id, &args.api_version, None, None)
+        .await?;
+    println!(
+        "DELETE response: {}",
+        String::from_utf8(resp.body.to_vec())?
+    );
+
     Ok(())
 }

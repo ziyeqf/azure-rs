@@ -4,10 +4,14 @@ use azure_core::{
     credentials::TokenCredential,
     http::{
         policies::{BearerTokenCredentialPolicy, Policy},
-        ClientMethodOptions, ClientOptions, Context, Method, Pipeline, RawResponse, Request, Url,
+        Body, ClientMethodOptions, ClientOptions, Context, Method, Pipeline, RawResponse, Request,
+        Url,
     },
     Result,
 };
+use bytes::Bytes;
+
+use crate::poller::{Poller, Response};
 
 #[derive(Debug)]
 pub struct Client {
@@ -42,8 +46,9 @@ impl Client {
         method: Method,
         api_path: &str,
         api_version: &str,
+        body: Option<Bytes>,
         options: Option<ClientMethodOptions<'_>>,
-    ) -> Result<RawResponse> {
+    ) -> Result<Response> {
         let options = options.unwrap_or_default();
         let mut url = self.endpoint.clone();
         url = url.join(api_path)?;
@@ -51,8 +56,19 @@ impl Client {
             .append_pair("api-version", api_version);
         let mut request = Request::new(url, method);
         request.insert_header("accept", "application/json");
+        if let Some(body) = body {
+            request.insert_header("content-type", "application/json");
+            request.set_body(body);
+        }
 
         let ctx = Context::with_context(&options.context);
-        self.pipeline.send(&ctx, &mut request).await
+        let raw_resp = self.pipeline.send(&ctx, &mut request).await?;
+        let resp = Response::from_raw_response(raw_resp).await?;
+
+        if let Some(mut poller) = Poller::new(self.pipeline.clone(), &request, &resp, None).await? {
+            poller.poll_until_done(&ctx, None).await
+        } else {
+            Ok(resp)
+        }
     }
 }
