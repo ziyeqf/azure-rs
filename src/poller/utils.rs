@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use std::{
     fmt::{write, Display},
@@ -7,8 +8,9 @@ use std::{
 use super::Response;
 
 use azure_core::{
-    http::{headers::HeaderName, StatusCode},
-    Result,
+    error::ErrorKind,
+    http::{headers::HeaderName, StatusCode, Url},
+    Error, Result,
 };
 use serde_json::{from_slice, Value};
 use std::collections::HashMap;
@@ -91,9 +93,27 @@ pub fn get_provisioning_state(resp: &Response) -> Result<Option<LROStatus>> {
 // Typically used for Azure-AsyncOperation flows.
 // If there is no status in the response body the None is returned.
 pub fn get_lro_status(resp: &Response) -> Result<Option<LROStatus>> {
+    if resp.body.is_empty() {
+        return Ok(None);
+    }
     let m: HashMap<String, Value> = from_slice(&resp.body)?;
     let status = m.get("status").and_then(|v| v.as_str());
     Ok(status.map(LROStatus::from_str))
+}
+
+// get_resource_location returns the LRO's resourceLocation value from the response body.
+// Typically used for Operation-Location flows.
+// If there is no resourceLocation in the response body the None is returned.
+pub fn get_resource_location(resp: &Response) -> Result<Option<Url>> {
+    if resp.body.is_empty() {
+        return Ok(None);
+    }
+    let m: HashMap<String, Value> = from_slice(&resp.body)?;
+    if let Some(rl) = m.get("resourceLocation").and_then(|v| v.as_str()) {
+        let url: Url = rl.parse()?;
+        return Ok(Some(url));
+    }
+    Ok(None)
 }
 
 pub fn retry_after(resp: &Response) -> Option<Duration> {
@@ -178,9 +198,21 @@ pub fn is_non_terminal_http_status_code(status_code: StatusCode) -> bool {
 // result_helper processes the response as success or failure.
 // In the success case, it returns the response as Ok.
 // In the failure case, it returns the Response ErrorKind as Err.
-pub fn result_helper(resp: &Response, failed: bool) -> Result<Response> {
+pub fn result_helper(resp: &Response, failed: bool, json_field: Option<&str>) -> Result<Response> {
     if !is_valid_status_code(resp.status_code) || failed {
         Err(resp.clone().into())
+    } else if let Some(json_field) = json_field {
+        let m: HashMap<String, Value> = from_slice(&resp.body)?;
+        let body = m.get(json_field).ok_or(Error::message(
+            ErrorKind::Other,
+            format!("field \"{}\" not found in the response body", json_field),
+        ))?;
+        let body = Bytes::from(serde_json::to_vec(body)?);
+        Ok(Response {
+            body,
+            status_code: resp.status_code,
+            headers: resp.headers.clone(),
+        })
     } else {
         Ok(resp.clone())
     }

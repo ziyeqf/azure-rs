@@ -2,6 +2,7 @@ mod asyncop;
 mod final_state;
 mod loc;
 mod noop;
+mod op;
 mod utils;
 
 use azure_core::error::{http_response_from_body, ErrorKind};
@@ -65,6 +66,7 @@ trait PollingHandler {
 enum Handler {
     AsyncOp(asyncop::Poller),
     Loc(loc::Poller),
+    Op(op::Poller),
     Noop(noop::Poller),
 }
 
@@ -131,6 +133,7 @@ impl Poller {
         let resp = match &mut self.handler {
             Handler::AsyncOp(poller) => poller.poll(ctx).await?,
             Handler::Loc(poller) => poller.poll(ctx).await?,
+            Handler::Op(poller) => poller.poll(ctx).await?,
             Handler::Noop(poller) => poller.poll(ctx).await?,
         };
 
@@ -161,6 +164,7 @@ impl Poller {
         match &self.handler {
             Handler::AsyncOp(poller) => poller.done(),
             Handler::Loc(poller) => poller.done(),
+            Handler::Op(poller) => poller.done(),
             Handler::Noop(poller) => poller.done(),
         }
     }
@@ -173,6 +177,7 @@ impl Poller {
         match &self.handler {
             Handler::AsyncOp(poller) => poller.result(ctx).await,
             Handler::Loc(poller) => poller.result(ctx).await,
+            Handler::Op(poller) => poller.result(ctx).await,
             Handler::Noop(poller) => poller.result(ctx).await,
         }
     }

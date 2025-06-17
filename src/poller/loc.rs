@@ -81,6 +81,6 @@ impl PollingHandler for Poller {
     }
 
     async fn result(&self, ctx: &azure_core::http::Context<'_>) -> Result<Response> {
-        result_helper(&self.resp, self.cur_state.is_failed())
+        result_helper(&self.resp, self.cur_state.is_failed(), None)
     }
 }
