@@ -76,6 +76,9 @@ impl LROStatus {
 // get_provisioning_state returns the LRO's state from the response body.
 // If there is no state in the response body the None is returned.
 pub fn get_provisioning_state(resp: &Response) -> Result<Option<LROStatus>> {
+    if resp.body.is_empty() {
+        return Ok(None);
+    }
     let m: HashMap<String, Value> = from_slice(&resp.body)?;
     let props = m.get("properties").and_then(|v| v.as_object());
     let state = props
@@ -104,7 +107,7 @@ pub fn retry_after(resp: &Response) -> Option<Duration> {
 
     let candidates = vec![
         Candidate {
-            header: "Retry-After-Ms",
+            header: "retry-after-ms",
             to_duration: Duration::from_millis,
             custom: None,
         },
@@ -114,7 +117,7 @@ pub fn retry_after(resp: &Response) -> Option<Duration> {
             custom: None,
         },
         Candidate {
-            header: "Retry-After",
+            header: "retry-after",
             to_duration: Duration::from_secs,
             custom: Some(|s| {
                 if let Ok(t) = DateTime::parse_from_rfc2822(s) {
@@ -170,4 +173,15 @@ pub fn is_non_terminal_http_status_code(status_code: StatusCode) -> bool {
     .iter()
     .find(|v| **v == status_code)
     .is_some()
+}
+
+// result_helper processes the response as success or failure.
+// In the success case, it returns the response as Ok.
+// In the failure case, it returns the Response ErrorKind as Err.
+pub fn result_helper(resp: &Response, failed: bool) -> Result<Response> {
+    if !is_valid_status_code(resp.status_code) || failed {
+        Err(resp.clone().into())
+    } else {
+        Ok(resp.clone())
+    }
 }

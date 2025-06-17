@@ -1,5 +1,6 @@
 mod asyncop;
 mod final_state;
+mod loc;
 mod noop;
 mod utils;
 
@@ -49,6 +50,8 @@ impl From<Response> for Error {
 }
 
 trait PollingHandler {
+    fn applicable(resp: &Response) -> bool;
+
     // poll fetches the latest state of the LRO.
     async fn poll(&mut self, ctx: &Context<'_>) -> Result<Response>;
 
@@ -61,6 +64,7 @@ trait PollingHandler {
 
 enum Handler {
     AsyncOp(asyncop::Poller),
+    Loc(loc::Poller),
     Noop(noop::Poller),
 }
 
@@ -107,6 +111,8 @@ impl Poller {
                 resp.clone(),
                 opts.final_state,
             )?)
+        } else if loc::Poller::applicable(resp) {
+            Handler::Loc(loc::Poller::new(pl, resp.clone())?)
         } else {
             return Ok(None);
         };
@@ -124,6 +130,7 @@ impl Poller {
 
         let resp = match &mut self.handler {
             Handler::AsyncOp(poller) => poller.poll(ctx).await?,
+            Handler::Loc(poller) => poller.poll(ctx).await?,
             Handler::Noop(poller) => poller.poll(ctx).await?,
         };
 
@@ -153,6 +160,7 @@ impl Poller {
     pub fn done(&self) -> bool {
         match &self.handler {
             Handler::AsyncOp(poller) => poller.done(),
+            Handler::Loc(poller) => poller.done(),
             Handler::Noop(poller) => poller.done(),
         }
     }
@@ -164,6 +172,7 @@ impl Poller {
         assert!(self.done());
         match &self.handler {
             Handler::AsyncOp(poller) => poller.result(ctx).await,
+            Handler::Loc(poller) => poller.result(ctx).await,
             Handler::Noop(poller) => poller.result(ctx).await,
         }
     }

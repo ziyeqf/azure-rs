@@ -5,7 +5,7 @@ use azure_core::http::{Context, Request, StatusCode, Url};
 use azure_core::{Error, Result};
 
 use crate::poller::final_state;
-use crate::poller::utils::{self, get_lro_status};
+use crate::poller::utils::{self, get_lro_status, result_helper};
 
 use super::final_state::FinalStateVia;
 use super::utils::{get_provisioning_state, LROStatus};
@@ -43,7 +43,12 @@ impl Poller {
         resp: Response,
         final_state: Option<FinalStateVia>,
     ) -> Result<Self> {
-        let async_url = resp.headers.get_as(&AZURE_ASYNCOPERATION)?;
+        let async_url = resp.headers.get_as(&AZURE_ASYNCOPERATION).map_err(|err| {
+            err.context(format!(
+                "parsing header `{}` as a URL",
+                AZURE_ASYNCOPERATION.as_str()
+            ))
+        })?;
         let loc_url = resp.headers.get_optional_as(&LOCATION)?;
         let cur_state = get_provisioning_state(&resp)?.unwrap_or(LROStatus::InProgress);
         Ok(Self {
@@ -57,15 +62,15 @@ impl Poller {
             cur_state,
         })
     }
+}
 
-    pub fn applicable(resp: &Response) -> bool {
+impl PollingHandler for Poller {
+    fn applicable(resp: &Response) -> bool {
         resp.headers
             .get_optional_str(&AZURE_ASYNCOPERATION)
             .is_some()
     }
-}
 
-impl PollingHandler for Poller {
     async fn poll(&mut self, ctx: &Context<'_>) -> Result<Response> {
         if self.done() {
             return Ok(self.resp.clone());
@@ -136,6 +141,7 @@ impl PollingHandler for Poller {
 
         let raw_resp = self.pl.send(ctx, &mut req).await?;
         let resp = Response::from_raw_response(raw_resp).await?;
-        Ok(resp)
+
+        result_helper(&resp, self.cur_state.is_failed())
     }
 }

@@ -13,6 +13,10 @@ impl Poller {
 }
 
 impl PollingHandler for Poller {
+    fn applicable(resp: &Response) -> bool {
+        todo!()
+    }
+
     async fn result(&self, ctx: &Context<'_>) -> Result<Response> {
         todo!()
     }

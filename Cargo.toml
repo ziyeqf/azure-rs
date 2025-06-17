@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.98"
 azure_core = "0.25.0"
 azure_identity = "0.25.0"
 bytes = "1.10.1"

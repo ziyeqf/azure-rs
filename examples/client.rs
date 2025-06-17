@@ -1,9 +1,9 @@
+use anyhow::Result;
 use azure::client::Client;
 use azure_core::http::Method::{Delete, Get, Put};
 use azure_identity::DefaultAzureCredential;
 use bytes::Bytes;
 use clap::Parser;
-use std::error::Error;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -21,7 +21,7 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     let args = Args::parse();
 
     let credential = DefaultAzureCredential::new()?;
