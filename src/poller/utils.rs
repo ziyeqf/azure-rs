@@ -1,9 +1,6 @@
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use std::{
-    fmt::{write, Display},
-    time::Duration,
-};
+use std::{fmt::Display, time::Duration};
 
 use super::Response;
 
@@ -59,15 +56,13 @@ impl LROStatus {
     pub fn is_failed(&self) -> bool {
         [LROStatus::Failed, LROStatus::Canceled, LROStatus::Cancelled]
             .iter()
-            .find(|v| **v == *self)
-            .is_some()
+            .any(|v| *v == *self)
     }
 
     pub fn is_succeeded(&self) -> bool {
         [LROStatus::Succeeded, LROStatus::Completed]
             .iter()
-            .find(|v| **v == *self)
-            .is_some()
+            .any(|v| *v == *self)
     }
 
     pub fn is_terminal(&self) -> bool {
@@ -175,8 +170,7 @@ pub fn is_valid_status_code(status_code: StatusCode) -> bool {
         StatusCode::NoContent,
     ]
     .iter()
-    .find(|&&code| code == status_code)
-    .is_some()
+    .any(|&code| code == status_code)
 }
 
 // IsNonTerminalHTTPStatusCode returns true if the HTTP status code should be
@@ -191,8 +185,7 @@ pub fn is_non_terminal_http_status_code(status_code: StatusCode) -> bool {
         StatusCode::GatewayTimeout,
     ]
     .iter()
-    .find(|v| **v == status_code)
-    .is_some()
+    .any(|v| *v == status_code)
 }
 
 // result_helper processes the response as success or failure.

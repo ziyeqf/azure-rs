@@ -1,6 +1,6 @@
 use super::{PollingHandler, Response};
 use azure_core::{
-    http::{Context, RawResponse},
+    http::{Context, RawResponse, Request},
     Result,
 };
 
@@ -13,7 +13,7 @@ impl Poller {
 }
 
 impl PollingHandler for Poller {
-    fn applicable(resp: &Response) -> bool {
+    fn applicable(req: &Request, resp: &Response) -> bool {
         todo!()
     }
 

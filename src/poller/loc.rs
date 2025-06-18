@@ -37,7 +37,7 @@ impl Poller {
 }
 
 impl PollingHandler for Poller {
-    fn applicable(resp: &Response) -> bool {
+    fn applicable(_: &Request, resp: &Response) -> bool {
         resp.headers.get_optional_str(&LOCATION).is_some()
     }
 

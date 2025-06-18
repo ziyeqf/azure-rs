@@ -1,4 +1,5 @@
 mod asyncop;
+mod body;
 mod final_state;
 mod loc;
 mod noop;
@@ -6,7 +7,7 @@ mod op;
 mod utils;
 
 use azure_core::error::{http_response_from_body, ErrorKind};
-use azure_core::http::Request;
+use azure_core::http::{Method, Request};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -51,7 +52,7 @@ impl From<Response> for Error {
 }
 
 trait PollingHandler {
-    fn applicable(resp: &Response) -> bool;
+    fn applicable(req: &Request, resp: &Response) -> bool;
 
     // poll fetches the latest state of the LRO.
     async fn poll(&mut self, ctx: &Context<'_>) -> Result<Response>;
@@ -67,12 +68,20 @@ enum Handler {
     AsyncOp(asyncop::Poller),
     Loc(loc::Poller),
     Op(op::Poller),
+    Body(body::Poller),
     Noop(noop::Poller),
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct NewPollerOptions {
+    // final_state contains the final-state-via value for the LRO.
+    // NOTE: used only for Azure-AsyncOperation and Operation-Location LROs.
     final_state: Option<FinalStateVia>,
+
+    // operation_location_result_path contains the JSON path to the result's
+    // payload when it's included with the terminal success response.
+    // NOTE: only used for Operation-Location LROs.
+    operation_location_result_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -106,17 +115,42 @@ impl Poller {
         }
 
         // Determine the polling method
-        let handler = if asyncop::Poller::applicable(resp) {
+        let handler = if asyncop::Poller::applicable(req, resp) {
+            // async poller must be checked first as it can also have a location header
             Handler::AsyncOp(asyncop::Poller::new(
                 pl,
                 req,
                 resp.clone(),
                 opts.final_state,
             )?)
-        } else if loc::Poller::applicable(resp) {
+        } else if op::Poller::applicable(req, resp) {
+            // op poller must be checked before loc as it can also have a location header
+            Handler::Op(op::Poller::new(
+                pl,
+                req,
+                resp.clone(),
+                opts.final_state,
+                opts.operation_location_result_path,
+            )?)
+        } else if loc::Poller::applicable(req, resp) {
             Handler::Loc(loc::Poller::new(pl, resp.clone())?)
+        } else if body::Poller::applicable(req, resp) {
+            // must test body poller last as it's a subset of the other pollers.
+            // TODO: this is ambiguous for PATCH/PUT if it returns a 200 with no polling headers (sync completion)
+            Handler::Body(body::Poller::new(pl, req, resp.clone())?)
+        } else if resp.status_code == StatusCode::Accepted
+            && [Method::Delete, Method::Post]
+                .iter()
+                .any(|v| v == req.method())
+        {
+            // if we get here it means we have a 202 with no polling headers.
+            // for DELETE and POST this is a hard error per ARM RPC spec.
+            return Err(Error::message(
+                resp.clone().into(),
+                "response is missing polling URL",
+            ));
         } else {
-            return Ok(None);
+            Handler::Noop(noop::Poller::new())
         };
 
         Ok(Some(Self {
@@ -134,6 +168,7 @@ impl Poller {
             Handler::AsyncOp(poller) => poller.poll(ctx).await?,
             Handler::Loc(poller) => poller.poll(ctx).await?,
             Handler::Op(poller) => poller.poll(ctx).await?,
+            Handler::Body(poller) => poller.poll(ctx).await?,
             Handler::Noop(poller) => poller.poll(ctx).await?,
         };
 
@@ -165,6 +200,7 @@ impl Poller {
             Handler::AsyncOp(poller) => poller.done(),
             Handler::Loc(poller) => poller.done(),
             Handler::Op(poller) => poller.done(),
+            Handler::Body(poller) => poller.done(),
             Handler::Noop(poller) => poller.done(),
         }
     }
@@ -178,6 +214,7 @@ impl Poller {
             Handler::AsyncOp(poller) => poller.result(ctx).await,
             Handler::Loc(poller) => poller.result(ctx).await,
             Handler::Op(poller) => poller.result(ctx).await,
+            Handler::Body(poller) => poller.result(ctx).await,
             Handler::Noop(poller) => poller.result(ctx).await,
         }
     }
