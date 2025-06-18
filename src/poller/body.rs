@@ -99,7 +99,7 @@ impl PollingHandler for Poller {
         self.cur_state.is_terminal()
     }
 
-    async fn result(&self, ctx: &azure_core::http::Context<'_>) -> Result<Response> {
+    async fn result(&self, _: &azure_core::http::Context<'_>) -> Result<Response> {
         result_helper(&self.resp, self.cur_state.is_failed(), None)
     }
 }

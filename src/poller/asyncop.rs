@@ -1,14 +1,12 @@
-use azure_core::error::{http_response_from_body, ErrorKind};
+use azure_core::error::ErrorKind;
 use azure_core::http::headers::LOCATION;
 use azure_core::http::{headers::AZURE_ASYNCOPERATION, Method, Pipeline};
-use azure_core::http::{Context, Request, StatusCode, Url};
+use azure_core::http::{Context, Request, Url};
 use azure_core::{Error, Result};
 
-use crate::poller::final_state;
 use crate::poller::utils::{self, get_lro_status, result_helper};
 
-use super::final_state::FinalStateVia;
-use super::utils::{get_provisioning_state, LROStatus};
+use super::utils::{get_provisioning_state, FinalStateVia, LROStatus};
 use super::{PollingHandler, Response};
 
 pub struct Poller {

@@ -1,6 +1,5 @@
 mod asyncop;
 mod body;
-mod final_state;
 mod loc;
 mod noop;
 mod op;
@@ -10,6 +9,7 @@ use azure_core::error::{http_response_from_body, ErrorKind};
 use azure_core::http::{Method, Request};
 use std::time::Duration;
 use tokio::time::sleep;
+use utils::FinalStateVia;
 
 use azure_core::Error;
 use azure_core::{
@@ -17,7 +17,6 @@ use azure_core::{
     Result,
 };
 use bytes::Bytes;
-use final_state::FinalStateVia;
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -102,7 +101,7 @@ impl Poller {
         req: &Request,
         resp: &Response,
         opts: Option<NewPollerOptions>,
-    ) -> Result<Option<Self>> {
+    ) -> Result<Self> {
         let opts = opts.unwrap_or_default();
 
         // This is a back-stop in case the swagger is incorrect (i.e. missing one or more status codes for success).
@@ -150,13 +149,13 @@ impl Poller {
                 "response is missing polling URL",
             ));
         } else {
-            Handler::Noop(noop::Poller::new())
+            Handler::Noop(noop::Poller::new(resp))
         };
 
-        Ok(Some(Self {
+        Ok(Self {
             handler,
             resp: resp.clone(),
-        }))
+        })
     }
 
     pub async fn poll(&mut self, ctx: &Context<'_>) -> Result<Response> {

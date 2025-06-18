@@ -1,12 +1,10 @@
-use std::fmt::write;
-
 use crate::poller::utils::{self, get_resource_location, result_helper};
 
 use super::utils::{get_lro_status, get_provisioning_state};
 use super::PollingHandler;
-use super::{final_state::FinalStateVia, utils::LROStatus, Response};
+use super::{utils::LROStatus, FinalStateVia, Response};
 use azure_core::error::ErrorKind;
-use azure_core::http::headers::{HeaderName, AZURE_ASYNCOPERATION, LOCATION};
+use azure_core::http::headers::{HeaderName, LOCATION};
 use azure_core::http::{Method, Pipeline, Request, Url};
 use azure_core::{Error, Result};
 

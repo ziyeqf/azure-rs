@@ -1,7 +1,7 @@
 use azure_core::http::{headers::LOCATION, Pipeline, Request, Url};
 use azure_core::http::{Method, StatusCode};
 
-use azure_core::{Error, Result};
+use azure_core::Result;
 
 use crate::poller::utils::{get_provisioning_state, is_non_terminal_http_status_code};
 
@@ -80,7 +80,7 @@ impl PollingHandler for Poller {
         self.cur_state.is_terminal()
     }
 
-    async fn result(&self, ctx: &azure_core::http::Context<'_>) -> Result<Response> {
+    async fn result(&self, _: &azure_core::http::Context<'_>) -> Result<Response> {
         result_helper(&self.resp, self.cur_state.is_failed(), None)
     }
 }
