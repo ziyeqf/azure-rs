@@ -128,9 +128,7 @@ impl PollingHandler for Poller {
                     req = Some(Request::new(loc_url.clone(), Method::Get));
                 }
             }
-            _ => {
-                unreachable!("unexpected original method {}", self.method);
-            }
+            _ => {}
         }
         if req.is_none() {
             return Ok(self.resp.clone());
