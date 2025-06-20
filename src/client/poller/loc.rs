@@ -3,7 +3,7 @@ use azure_core::http::{Method, StatusCode};
 
 use azure_core::Result;
 
-use crate::poller::utils::{get_provisioning_state, is_non_terminal_http_status_code};
+use crate::client::poller::utils::{get_provisioning_state, is_non_terminal_http_status_code};
 
 use super::utils::result_helper;
 use super::PollingHandler;

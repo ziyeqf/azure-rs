@@ -5,7 +5,7 @@ mod noop;
 mod op;
 mod utils;
 
-use azure_core::error::{http_response_from_body, ErrorKind};
+use azure_core::error::ErrorKind;
 use azure_core::http::{Method, Request};
 use std::time::Duration;
 use tokio::time::sleep;
@@ -13,42 +13,11 @@ use utils::FinalStateVia;
 
 use azure_core::Error;
 use azure_core::{
-    http::{headers::Headers, Context, Pipeline, RawResponse, StatusCode},
+    http::{Context, Pipeline, StatusCode},
     Result,
 };
-use bytes::Bytes;
 
-#[derive(Debug, Clone)]
-pub struct Response {
-    pub status_code: StatusCode,
-    pub headers: Headers,
-    pub body: Bytes,
-}
-
-impl Response {
-    pub async fn from_raw_response(resp: RawResponse) -> Result<Self> {
-        let (status_code, headers, body) = resp.deconstruct();
-        let body = body.collect().await?;
-        Ok(Self {
-            status_code,
-            headers,
-            body,
-        })
-    }
-}
-
-impl From<Response> for ErrorKind {
-    fn from(val: Response) -> Self {
-        http_response_from_body(val.status_code, &val.body)
-    }
-}
-
-impl From<Response> for Error {
-    fn from(val: Response) -> Self {
-        let error_kind: ErrorKind = val.into();
-        error_kind.into_error()
-    }
-}
+use super::response::Response;
 
 trait PollingHandler {
     fn applicable(req: &Request, resp: &Response) -> bool;

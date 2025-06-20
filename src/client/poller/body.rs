@@ -2,7 +2,7 @@ use azure_core::{Error, Result};
 
 use azure_core::http::{Method, Pipeline, Request, StatusCode, Url};
 
-use crate::poller::utils::{self, get_provisioning_state};
+use crate::client::poller::utils::{self, get_provisioning_state};
 
 use super::utils::result_helper;
 use super::PollingHandler;

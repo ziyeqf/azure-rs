@@ -1,3 +1,6 @@
+mod poller;
+mod response;
+
 use std::sync::Arc;
 
 use azure_core::{
@@ -10,7 +13,8 @@ use azure_core::{
 };
 use bytes::Bytes;
 
-use crate::poller::{Poller, Response};
+use crate::client::poller::Poller;
+use crate::client::response::Response;
 
 #[derive(Debug)]
 pub struct Client {

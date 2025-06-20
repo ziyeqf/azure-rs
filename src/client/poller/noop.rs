@@ -1,6 +1,6 @@
 use super::{PollingHandler, Response};
 use azure_core::{
-    http::{headers::Headers, Context, Request, StatusCode},
+    http::{Context, Request},
     Result,
 };
 
