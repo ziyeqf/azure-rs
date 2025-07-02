@@ -175,7 +175,7 @@ impl Api {
                             let v = match prop.type_.as_str() {
                                 "ResourceLocation" | "string" => Value::String(arg_value.clone()),
                                 _ => serde_json::from_str(arg_value)
-                                    .context(format!("parsing json value {:#?}", arg_value))?,
+                                    .context(format!("parsing json value {arg_value:#?}"))?,
                             };
                             obj.insert(name.clone(), v);
                         }

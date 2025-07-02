@@ -74,15 +74,11 @@ impl LROStatus {
     }
 
     pub fn is_failed(&self) -> bool {
-        [LROStatus::Failed, LROStatus::Canceled, LROStatus::Cancelled]
-            .iter()
-            .any(|v| *v == *self)
+        [LROStatus::Failed, LROStatus::Canceled, LROStatus::Cancelled].contains(self)
     }
 
     pub fn is_succeeded(&self) -> bool {
-        [LROStatus::Succeeded, LROStatus::Completed]
-            .iter()
-            .any(|v| *v == *self)
+        [LROStatus::Succeeded, LROStatus::Completed].contains(self)
     }
 
     pub fn is_terminal(&self) -> bool {
@@ -189,8 +185,7 @@ pub fn is_valid_status_code(status_code: StatusCode) -> bool {
         StatusCode::Created,
         StatusCode::NoContent,
     ]
-    .iter()
-    .any(|&code| code == status_code)
+    .contains(&status_code)
 }
 
 // IsNonTerminalHTTPStatusCode returns true if the HTTP status code should be
@@ -204,8 +199,7 @@ pub fn is_non_terminal_http_status_code(status_code: StatusCode) -> bool {
         StatusCode::ServiceUnavailable,
         StatusCode::GatewayTimeout,
     ]
-    .iter()
-    .any(|v| *v == status_code)
+    .contains(&status_code)
 }
 
 // result_helper processes the response as success or failure.
@@ -218,7 +212,7 @@ pub fn result_helper(resp: &Response, failed: bool, json_field: Option<&str>) ->
         let m: HashMap<String, Value> = from_slice(&resp.body)?;
         let body = m.get(json_field).ok_or(Error::message(
             ErrorKind::Other,
-            format!("field \"{}\" not found in the response body", json_field),
+            format!("field \"{json_field}\" not found in the response body"),
         ))?;
         let body = Bytes::from(serde_json::to_vec(body)?);
         Ok(Response {

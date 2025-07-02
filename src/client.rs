@@ -69,10 +69,7 @@ impl Client {
         let resp = Response::from_raw_response(raw_resp).await?;
 
         // For PUT, POST, PATCH, DELETE operations that can be a LRO, try to
-        if [Method::Put, Method::Post, Method::Delete, Method::Patch]
-            .iter()
-            .any(|m| *m == method)
-        {
+        if [Method::Put, Method::Post, Method::Delete, Method::Patch].contains(&method) {
             if let Ok(mut poller) = Poller::new(self.pipeline.clone(), &request, &resp, None).await
             {
                 return poller.poll_until_done(&ctx, None).await;

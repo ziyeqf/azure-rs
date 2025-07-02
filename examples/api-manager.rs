@@ -18,10 +18,10 @@ async fn main() -> Result<()> {
     let api = api_manager.build_api(&input)?;
     if input.is_help() {
         let res = api.help();
-        println!("{}", res);
+        println!("{res}");
     } else {
         let res = api.execute(&client).await?;
-        println!("{}", res);
+        println!("{res}");
     }
     Ok(())
 }
