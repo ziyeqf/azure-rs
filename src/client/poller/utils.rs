@@ -12,6 +12,7 @@ use azure_core::{
 use serde_json::{from_slice, Value};
 use std::collections::HashMap;
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum FinalStateVia {
     AzureAsyncOp,

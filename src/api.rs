@@ -212,8 +212,8 @@ impl ApiManager {
     }
 
     fn read_group_metadata(&self, group: &str) -> Result<Metadata> {
-        let bytes = read(self.path.join(format!("{}.json", group)))
-            .context(format!("reading {}.json", group))?;
+        let bytes = read(self.path.join(format!("{group}.json")))
+            .context(format!("reading {group}.json"))?;
         Ok(serde_json::from_slice(&bytes)?)
     }
 }
