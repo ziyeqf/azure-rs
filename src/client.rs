@@ -25,15 +25,14 @@ pub struct Client {
 impl Client {
     pub fn new(
         endpoint: &str,
+        auth_scopes: impl IntoIterator<Item = impl Into<String>>,
         credential: Arc<dyn TokenCredential>,
         options: Option<ClientOptions>,
     ) -> Result<Self> {
-        let options = options.unwrap_or_default();
         let endpoint = Url::parse(endpoint)?;
-        let auth_policy: Arc<dyn Policy> = Arc::new(BearerTokenCredentialPolicy::new(
-            credential,
-            vec!["https://management.azure.com/.default"],
-        ));
+        let options = options.unwrap_or_default();
+        let auth_policy: Arc<dyn Policy> =
+            Arc::new(BearerTokenCredentialPolicy::new(credential, auth_scopes));
         let pipeline = Pipeline::new(
             option_env!("CARGO_PKG_NAME"),
             option_env!("CARGO_PKG_VERSION"),

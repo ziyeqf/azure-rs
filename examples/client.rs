@@ -25,7 +25,12 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     let credential = DefaultAzureCredential::new()?;
-    let client = Client::new("https://management.azure.com", credential, None)?;
+    let client = Client::new(
+        "https://management.azure.com",
+        vec!["https://management.azure.com/.default"],
+        credential,
+        None,
+    )?;
 
     let resp = client
         .run(Put, &args.id, &args.api_version, args.body, None)
