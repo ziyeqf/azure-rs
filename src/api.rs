@@ -1,14 +1,12 @@
-mod metadata;
-use bytes::Bytes;
+pub mod metadata;
 
 use crate::arg::{Arg, CliInput};
 use crate::client::Client;
 use anyhow::{anyhow, bail, Context, Result};
 use azure_core::http::Method;
+use bytes::Bytes;
 use metadata::{CommandHelper, CommandOrCommandGroup, Http, Metadata};
 use serde_json::{Map, Value};
-use std::fs::read;
-use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct Api {
@@ -185,35 +183,5 @@ impl Api {
             }
         }
         Ok(Bytes::from(serde_json::to_vec(&result)?))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ApiManager {
-    path: PathBuf,
-}
-
-impl ApiManager {
-    pub fn new(path: PathBuf) -> Self {
-        Self { path }
-    }
-
-    pub fn build_api(&self, cli_input: &CliInput) -> Result<Api> {
-        let pos_args = cli_input.pos_args();
-        pos_args
-            .first()
-            .ok_or(anyhow::anyhow!(
-                "no positional argument specified from the CLI input"
-            ))
-            .and_then(|group| {
-                let metadata = self.read_group_metadata(group)?;
-                Ok(Api::new(metadata, cli_input.clone()))
-            })?
-    }
-
-    fn read_group_metadata(&self, group: &str) -> Result<Metadata> {
-        let bytes = read(self.path.join(format!("{group}.json")))
-            .context(format!("reading {group}.json"))?;
-        Ok(serde_json::from_slice(&bytes)?)
     }
 }
