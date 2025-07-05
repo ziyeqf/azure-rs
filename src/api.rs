@@ -41,7 +41,7 @@ impl Api {
                     let api_version = self.build_api_version(http)?;
                     let api_body = self.build_api_body(http)?;
                     let resp = client
-                        .run(api_method, &api_path, &api_version, Some(api_body), None)
+                        .run(api_method, &api_path, &api_version, api_body, None)
                         .await?;
                     Ok(String::from_utf8(resp.body.to_vec())?)
                 } else {
@@ -117,9 +117,8 @@ impl Api {
         })
     }
 
-    fn build_api_body(&self, http_desc: &Http) -> Result<Bytes> {
+    fn build_api_body(&self, http_desc: &Http) -> Result<Option<Bytes>> {
         let c = self.c_or_cg.as_command();
-        let mut result = Value::Null;
         if let Some(body) = &http_desc.request.body {
             if let Some(schema) = &body.json.schema {
                 if let Some(props) = &schema.props {
@@ -178,10 +177,11 @@ impl Api {
                             obj.insert(name.clone(), v);
                         }
                     }
-                    result = Value::Object(obj);
+                    let result = Some(Value::Object(obj));
+                    return Ok(Some(Bytes::from(serde_json::to_vec(&result)?)));
                 }
             }
         }
-        Ok(Bytes::from(serde_json::to_vec(&result)?))
+        return Ok(None);
     }
 }
