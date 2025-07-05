@@ -1,5 +1,6 @@
 use azure_core::credentials::Secret;
 use azure_identity::ClientSecretCredential;
+use std::fmt::Debug;
 use std::{path::PathBuf, result::Result};
 use wasm_bindgen::prelude::*;
 
@@ -44,7 +45,6 @@ pub async fn run_cli(
             None,
         )
         .map_err(jsfy)?;
-
         let res = api.execute(&client).await.map_err(jsfy)?;
         Ok(res)
     }
@@ -52,7 +52,8 @@ pub async fn run_cli(
 
 fn jsfy<E>(e: E) -> JsValue
 where
-    E: ToString,
+    E: Debug,
 {
-    JsValue::from_str(e.to_string().as_str())
+    let es = format!("{e:#?}");
+    JsValue::from_str(es.as_str())
 }

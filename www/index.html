@@ -276,7 +276,7 @@
         const result = await executeCliCommand(tenantId, clientId, clientSecret, cliCommand);
         updateOutput(result, "success");
       } catch (error) {
-        updateOutput(error.message, "error");
+        updateOutput(error, "error");
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Execute CLI Command";
