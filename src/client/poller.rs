@@ -8,7 +8,8 @@ mod utils;
 use azure_core::error::ErrorKind;
 use azure_core::http::{Method, Request};
 use std::time::Duration;
-use tokio::time::sleep;
+use typespec_client_core::sleep::sleep;
+use typespec_client_core::time;
 use utils::FinalStateVia;
 
 use azure_core::Error;
@@ -157,8 +158,11 @@ impl Poller {
                 return self.result(ctx).await;
             }
 
-            let duration = utils::retry_after(&resp)
-                .unwrap_or(opts.frequency.unwrap_or(Duration::from_secs(30)));
+            let duration = time::Duration::try_from(
+                utils::retry_after(&resp)
+                    .unwrap_or(opts.frequency.unwrap_or(Duration::from_secs(30))),
+            )
+            .map_err(|e| Error::new(ErrorKind::Other, e))?;
             sleep(duration).await;
         }
     }
