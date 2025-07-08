@@ -247,7 +247,7 @@
         const result = await run_cli(args, tenantId, clientId, clientSecret);
         return result;
       } catch (error) {
-        throw new Error(`CLI execution failed: ${error.message}`);
+        throw new Error(`CLI execution failed: ${error}`);
       }
     }
 
@@ -276,7 +276,7 @@
         const result = await executeCliCommand(tenantId, clientId, clientSecret, cliCommand);
         updateOutput(result, "success");
       } catch (error) {
-        updateOutput(error, "error");
+        updateOutput(error.message, "error");
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Execute CLI Command";
