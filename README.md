@@ -37,7 +37,7 @@ Also, setup the `azure-sdk-for-rust` and checkout the `wasm_sleep` branch.
 Then you can build the crate to a WASM by:
 
 ```
-RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack test --target wasm32-unknown-unknown
+RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target wasm32-unknown-unknown
 ```
 
 (Note that the `RUSTFLAGS` thing is required for the `getrandom` crate)
