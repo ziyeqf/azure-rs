@@ -13,7 +13,7 @@ embed-api = []
 anyhow = "1.0.98"
 azure_core = "0.26.0"
 azure_identity = "0.26.0"
-typespec_client_core = "0.5.0"
+typespec_client_core = { version = "0.5.0", features = ["wasm-bindgen"] }
 bytes = "1.10.1"
 chrono = "0.4.41"
 clap = { version = "4.5.40", features = ["derive"] }
