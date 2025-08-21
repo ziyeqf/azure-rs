@@ -58,7 +58,7 @@ impl PollingHandler for Poller {
     fn applicable(req: &Request, _: &Response) -> bool {
         // we can't check for absense of headers due to some misbehaving services
         // like redis that return a Location header but don't actually use that protocol
-        *req.method() == Method::Put || *req.method() == Method::Patch
+        req.method() == Method::Put || req.method() == Method::Patch
     }
 
     async fn poll(&mut self, ctx: &azure_core::http::Context<'_>) -> Result<Response> {

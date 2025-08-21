@@ -55,7 +55,7 @@ impl Poller {
             async_url,
             loc_url,
             origin_url: req.url().clone(),
-            method: *req.method(),
+            method: req.method(),
             final_state,
             cur_state,
         })

@@ -18,11 +18,19 @@ The API metadata is a description of the Azure API, which is generated from Azur
 
 In the root folder, create a folder `metadata`, which is meant to store the API metadata files, to be used either during build time (if embedded), or during runtime. Currently, this folder path is hardcoded.
 
+## Features
+
+This package provides the following `features`:
+
+- `embed-api`: Control whether to embed the API metadata with the binary. This only applies when the target is not `wasm32-unknown-unknown` (which always embeds).
+- `runtime-tokio`: Controls whether to use the `tokio` based runtime, or using the Azure standard runtime (when not specified) in the underlying Azure SDK. This only applies when the target is not `wasm32-unknown-unknown`. This conflicts with `runtime-web`.
+- `runtime-web`: Controls whether to use the `wasm_bindgen` based runtime in the underlying Azure SDK. You shall and only shall specify this when targeting to `wasm32-unknown-unknown`. This conflicts with `runtime-tokio`.
+
 ## Native Build
 
 The simplified CLI resides in the example: `examples/api-manager.rs`.
 
-You can build it via (optionally add the `--features` if needed):
+You can build it via (optionally add the `--features runtime-tokio` if needed):
 
 ```
 cargo build --example api-manager
@@ -32,12 +40,10 @@ cargo build --example api-manager
 
 Follow https://rustwasm.github.io/book/game-of-life/setup.html to setup the Rust toolchain and `wasm-pack`.
 
-Also, setup the `azure-sdk-for-rust` and checkout the `wasm_sleep` branch.
-
 Then you can build the crate to a WASM by:
 
 ```
-RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target wasm32-unknown-unknown
+RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target web --features runtime-web
 ```
 
 (Note that the `RUSTFLAGS` thing is required for the `getrandom` crate)

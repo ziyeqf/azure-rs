@@ -110,7 +110,7 @@ impl Poller {
         } else if resp.status_code == StatusCode::Accepted
             && [Method::Delete, Method::Post]
                 .iter()
-                .any(|v| v == req.method())
+                .any(|v| *v == req.method())
         {
             // if we get here it means we have a 202 with no polling headers.
             // for DELETE and POST this is a hard error per ARM RPC spec.

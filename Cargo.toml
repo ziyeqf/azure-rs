@@ -8,12 +8,14 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 embed-api = []
+runtime-tokio = ["typespec_client_core/tokio"]
+runtime-web = ["typespec_client_core/wasm_bindgen"]
 
 [dependencies]
 anyhow = "1.0.98"
-azure_core = "0.26.0"
-azure_identity = "0.26.0"
-typespec_client_core = { version = "0.5.0", features = ["wasm-bindgen"] }
+azure_core = "0.27.0"
+azure_identity = "0.27.0"
+typespec_client_core = { version = "0.7.0" }
 bytes = "1.10.1"
 chrono = "0.4.41"
 clap = { version = "4.5.40", features = ["derive"] }
@@ -31,6 +33,5 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 pretty_assertions = "1.4.1"
 
 [patch.crates-io]
-azure_core = { path = "../azure-sdk-for-rust/sdk/core/azure_core" }
-azure_identity = { path = "../azure-sdk-for-rust/sdk/identity/azure_identity" }
-typespec_client_core = { path = "../azure-sdk-for-rust/sdk/typespec/typespec_client_core" }
+#typespec_client_core = { git = "https://github.com/Azure/azure-sdk-for-rust.git" }
+typespec_client_core = { path = "../azure-sdk-for-rust/sdk/typespec/typespec_client_core"}
