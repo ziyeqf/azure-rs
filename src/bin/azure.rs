@@ -2,7 +2,7 @@ use std::env;
 use std::{path::PathBuf, str::FromStr};
 
 use anyhow::Result;
-use azure::api_mgr::ApiManager;
+use azure::api::ApiManager;
 use azure::arg::CliInput;
 use azure::client::Client;
 use azure_identity::DefaultAzureCredential;
@@ -13,9 +13,9 @@ async fn main() -> Result<()> {
     let args: Vec<_> = env::args().skip(1).collect();
     let input = CliInput::new(args);
     //println!("{:#?}", input);
-    let api = api_manager.build_api(&input)?;
+    let ctx = api_manager.build_ctx(&input)?;
     if input.is_help() {
-        let res = api.help();
+        let res = ctx.help();
         println!("{res}");
     } else {
         let credential = DefaultAzureCredential::new()?;
@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
             credential,
             None,
         )?;
-        let res = api.execute(&client).await?;
+        let res = ctx.execute(&client).await?;
         println!("{res}");
     }
     Ok(())

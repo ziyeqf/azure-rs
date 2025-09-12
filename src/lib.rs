@@ -1,5 +1,4 @@
-mod api;
-pub mod api_mgr;
+pub mod api;
 pub mod arg;
 pub mod client;
 

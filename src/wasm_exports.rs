@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::{path::PathBuf, result::Result};
 use wasm_bindgen::prelude::*;
 
-use crate::{api_mgr::ApiManager, arg::CliInput, client::Client};
+use crate::{api::ApiManager, arg::CliInput, client::Client};
 
 #[wasm_bindgen]
 extern "C" {
@@ -25,9 +25,9 @@ pub async fn run_cli(
     let args: Vec<_> = args.iter().skip(1).collect();
     let input = CliInput::new(args);
     //println!("{:#?}", input);
-    let api = api_manager.build_api(&input).map_err(jsfy)?;
+    let ctx = api_manager.build_ctx(&input).map_err(jsfy)?;
     if input.is_help() {
-        let res = api.help();
+        let res = ctx.help();
         Ok(res)
     } else {
         let credential = ClientSecretCredential::new(
@@ -45,7 +45,7 @@ pub async fn run_cli(
             None,
         )
         .map_err(jsfy)?;
-        let res = api.execute(&client).await.map_err(jsfy)?;
+        let res = ctx.execute(&client).await.map_err(jsfy)?;
         Ok(res)
     }
 }
