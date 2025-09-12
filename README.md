@@ -28,12 +28,12 @@ This package provides the following `features`:
 
 ## Native Build
 
-The simplified CLI resides in the example: `examples/api-manager.rs`.
+The simplified CLI resides in the example: `src/bin/azure.rs`.
 
 You can build it via (optionally add the `--features runtime-tokio` if needed):
 
 ```
-cargo build --example api-manager
+cargo install --bin azure --path .
 ```
 
 ## WASM Build

@@ -1711,8 +1711,12 @@ dependencies = [
 [[package]]
 name = "typespec"
 version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd7ebbd28a587eb1c2208dc6f48304eb8b7dea2100d4a83aecb27951a878987a"
 dependencies = [
  "base64",
+ "bytes",
+ "futures",
  "serde",
  "serde_json",
  "url",
@@ -1747,10 +1751,11 @@ dependencies = [
 [[package]]
 name = "typespec_client_core"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c722bbf92825952d4f7ab56393e5d200b5c702ef9fb92fd8b4c7a5447107ae6c"
 dependencies = [
  "async-trait",
  "base64",
- "bytes",
  "dyn-clone",
  "futures",
  "getrandom",

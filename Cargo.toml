@@ -31,7 +31,3 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
-
-[patch.crates-io]
-#typespec_client_core = { git = "https://github.com/Azure/azure-sdk-for-rust.git" }
-typespec_client_core = { path = "../azure-sdk-for-rust/sdk/typespec/typespec_client_core"}
