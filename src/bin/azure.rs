@@ -12,7 +12,10 @@ async fn main() -> Result<()> {
     let api_manager = ApiManager::new(PathBuf::from_str("./metadata")?);
     let args: Vec<_> = env::args().skip(1).collect();
     let input = CliInput::new(args);
-    //println!("{:#?}", input);
+    if input.is_help() && input.pos_args().is_empty() {
+        println!("Available rps: {:?}", api_manager.list_rps()?);
+        return Ok(());
+    }
     let ctx = api_manager.build_ctx(&input)?;
     if input.is_help() {
         let res = ctx.help();

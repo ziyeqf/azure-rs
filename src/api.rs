@@ -22,7 +22,7 @@ impl ApiManager {
                 "no positional argument specified from the CLI input"
             ))
             .and_then(|group| {
-                let metadata = self.read_group_metadata(group)?;
+                let metadata = self.read_metadata(group)?;
                 Ok(Ctx::new(metadata, cli_input.clone()))
             })?
     }
@@ -31,7 +31,7 @@ impl ApiManager {
 #[cfg(any(feature = "embed-api", target_arch = "wasm32"))]
 mod embedded {
     use crate::api::metadata::Metadata;
-    use anyhow::{anyhow, Result};
+    use anyhow::{Result, anyhow};
     use std::path::PathBuf;
 
     use rust_embed::RustEmbed;
@@ -47,10 +47,16 @@ mod embedded {
             }
         }
 
-        pub fn read_group_metadata(&self, group: &str) -> Result<Metadata> {
-            let bytes: Vec<u8> = Asset::get(format!("{group}.json").as_str())
+        pub fn list_rps(&self) -> Result<Vec<String>> {
+            Ok(Asset::names()
+                .map(|name| name.trim_end_matches(".json").to_string())
+                .collect())
+        }
+
+        pub fn read_metadata(&self, rp: &str) -> Result<Metadata> {
+            let bytes: Vec<u8> = Asset::get(format!("{rp}.json").as_str())
                 .map(|d| d.data.to_vec())
-                .ok_or(anyhow!("{group}.json doesn't exist"))?;
+                .ok_or(anyhow!("{rp}.json doesn't exist"))?;
             Ok(serde_json::from_slice(&bytes)?)
         }
     }
@@ -68,9 +74,29 @@ mod fs {
         pub fn new(path: PathBuf) -> Self {
             Self { path }
         }
-        pub fn read_group_metadata(&self, group: &str) -> Result<Metadata> {
-            let bytes = read(self.path.join(format!("{group}.json")))
-                .context(format!("reading {group}.json"))?;
+
+        pub fn list_rps(&self) -> Result<Vec<String>> {
+            let mut rps = vec![];
+            for entry in self
+                .path
+                .read_dir()
+                .context(format!("reading dir {}", self.path.display()))?
+            {
+                let path = entry?.path();
+                if let Some(ext) = path.extension() {
+                    if ext == "json" {
+                        if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                            rps.push(stem.to_owned());
+                        }
+                    }
+                }
+            }
+            Ok(rps)
+        }
+
+        pub fn read_metadata(&self, rp: &str) -> Result<Metadata> {
+            let bytes =
+                read(self.path.join(format!("{rp}.json"))).context(format!("reading {rp}.json"))?;
             Ok(serde_json::from_slice(&bytes)?)
         }
     }

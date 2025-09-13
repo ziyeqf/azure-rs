@@ -24,7 +24,10 @@ pub async fn run_cli(
     let api_manager = ApiManager::new(PathBuf::new());
     let args: Vec<_> = args.iter().skip(1).collect();
     let input = CliInput::new(args);
-    //println!("{:#?}", input);
+    if input.is_help() && input.pos_args().is_empty() {
+        let res = format!("Available rps: {:?}", api_manager.list_rps().map_err(jsfy)?);
+        return Ok(res);
+    }
     let ctx = api_manager.build_ctx(&input).map_err(jsfy)?;
     if input.is_help() {
         let res = ctx.help();
