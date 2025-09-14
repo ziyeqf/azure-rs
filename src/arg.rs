@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Arg {
     Optional(String, Option<String>), // Can be: --enable, --enable=true, --foo bar
@@ -10,16 +12,18 @@ pub struct CliInput {
 }
 
 impl CliInput {
-    pub fn new<I, S>(args: I) -> Self
+    pub fn new<I, S>(args: I) -> Result<Self>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
         let mut result = Vec::new();
+        let mut see_opt = false;
         let mut args = args.into_iter().peekable();
 
         while let Some(arg) = args.next() {
             if let Some(arg) = arg.as_ref().strip_prefix("-") {
+                see_opt = true;
                 let mut arg = arg;
                 if let Some(arg2) = arg.strip_prefix("-") {
                     arg = arg2;
@@ -44,22 +48,14 @@ impl CliInput {
                     }
                 }
             } else {
+                if see_opt {
+                    anyhow::bail!("optional raw arguments must follow positional raw arguments");
+                }
                 // Positional argument
                 result.push(Arg::Positional(String::from(arg.as_ref())));
             }
         }
-        Self { args: result }
-    }
-
-    pub fn api_version(&self) -> Option<&str> {
-        for arg in &self.args {
-            if let Arg::Optional(k, Some(v)) = arg {
-                if k == "api-version" {
-                    return Some(v.as_str());
-                }
-            }
-        }
-        None
+        Ok(Self { args: result })
     }
 
     pub fn is_help(&self) -> bool {
@@ -104,53 +100,53 @@ mod test {
     #[test]
     fn new_cli_input() {
         assert_eq!(
-            CliInput::new(vec!["foo"]).args,
+            CliInput::new(vec!["foo"]).unwrap().args,
             vec![Arg::Positional(String::from("foo"))]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "bar"]).args,
+            CliInput::new(vec!["foo", "bar"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Positional(String::from("bar")),
             ]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "--bar"]).args,
+            CliInput::new(vec!["foo", "--bar"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Optional(String::from("bar"), None),
             ]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "-b"]).args,
+            CliInput::new(vec!["foo", "-b"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Optional(String::from("b"), None),
             ]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "--bar=baz"]).args,
+            CliInput::new(vec!["foo", "--bar=baz"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Optional(String::from("bar"), Some(String::from("baz"))),
             ]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "-b=baz"]).args,
+            CliInput::new(vec!["foo", "-b=baz"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Optional(String::from("b"), Some(String::from("baz"))),
             ]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "--bar", "baz"]).args,
+            CliInput::new(vec!["foo", "--bar", "baz"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Optional(String::from("bar"), Some(String::from("baz"))),
             ]
         );
         assert_eq!(
-            CliInput::new(vec!["foo", "-b", "baz"]).args,
+            CliInput::new(vec!["foo", "-b", "baz"]).unwrap().args,
             vec![
                 Arg::Positional(String::from("foo")),
                 Arg::Optional(String::from("b"), Some(String::from("baz"))),

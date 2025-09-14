@@ -43,7 +43,7 @@ pub struct CommandGroup {
 }
 
 #[cfg_attr(test, derive(serde::Serialize))]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct Command {
     pub resources: Vec<Resource>,
     pub name: String,
@@ -53,7 +53,6 @@ pub struct Command {
     pub operations: Vec<Operation>,
     pub outputs: Option<Vec<Output>>,
     pub confirmation: Option<String>,
-    // TODO: Need confirm if this exists
     pub command_groups: Option<Vec<CommandGroup>>,
 }
 
