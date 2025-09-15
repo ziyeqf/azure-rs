@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Dependency
+      - name: Install Dependency
         run: cargo install wasm-pack
       - name: Build
         run: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target web --features runtime-web
@@ -39,7 +39,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'www'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
