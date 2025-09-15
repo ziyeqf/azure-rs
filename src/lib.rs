@@ -43,7 +43,7 @@ pub fn get_matches(cmd: Command, input: Vec<String>) -> Result<ArgMatches> {
     use clap::builder::Styles;
     let cmd = cmd.styles(Styles::plain());
     cmd.try_get_matches_from(input)
-        .map_err(|e| anyhow!("{}", e.render().ansi().to_string().replace("\\n", "\n")))
+        .map_err(|e| anyhow!("{}", e.render().ansi()))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
