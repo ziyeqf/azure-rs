@@ -1,10 +1,10 @@
+use crate::client::Client;
+use crate::run;
 use azure_core::credentials::Secret;
 use azure_identity::ClientSecretCredential;
 use std::fmt::Debug;
 use std::{path::PathBuf, result::Result};
 use wasm_bindgen::prelude::*;
-
-use crate::{api::ApiManager, arg::CliInput, client::Client};
 
 #[wasm_bindgen]
 extern "C" {
@@ -20,37 +20,23 @@ pub async fn run_cli(
     secret: &str,
 ) -> Result<String, JsValue> {
     console_error_panic_hook::set_once();
+    let credential = ClientSecretCredential::new(
+        tenant_id,
+        client_id.to_string(),
+        Secret::new(secret.to_string()),
+        None,
+    )
+    .map_err(jsfy)?;
 
-    let api_manager = ApiManager::new(PathBuf::new());
-    let args: Vec<_> = args.iter().skip(1).collect();
-    let input = CliInput::new(args);
-    if input.is_help() && input.pos_args().is_empty() {
-        let res = format!("Available rps: {:?}", api_manager.list_rps().map_err(jsfy)?);
-        return Ok(res);
-    }
-    let ctx = api_manager.build_ctx(&input).map_err(jsfy)?;
-    if input.is_help() {
-        let res = ctx.help();
-        Ok(res)
-    } else {
-        let credential = ClientSecretCredential::new(
-            tenant_id,
-            client_id.to_string(),
-            Secret::new(secret.to_string()),
-            None,
-        )
-        .map_err(jsfy)?;
+    let client = Client::new(
+        "https://management.azure.com",
+        vec!["https://management.azure.com/.default"],
+        credential,
+        None,
+    )
+    .map_err(jsfy)?;
 
-        let client = Client::new(
-            "https://management.azure.com",
-            vec!["https://management.azure.com/.default"],
-            credential,
-            None,
-        )
-        .map_err(jsfy)?;
-        let res = ctx.execute(&client).await.map_err(jsfy)?;
-        Ok(res)
-    }
+    run(PathBuf::new(), &client, args).await.map_err(jsfy)
 }
 
 fn jsfy<E>(e: E) -> JsValue
