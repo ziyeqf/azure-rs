@@ -35,11 +35,12 @@ pub enum Method {
 }
 
 #[cfg_attr(test, derive(serde::Serialize))]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct CommandGroup {
     pub name: String,
     pub commands: Vec<Command>,
-    // TODO: pub sub_groups: Vec<CommandGroup>,
+    #[serde(rename = "commandGroups")]
+    pub command_groups: Option<Vec<CommandGroup>>,
 }
 
 #[cfg_attr(test, derive(serde::Serialize))]
@@ -53,7 +54,6 @@ pub struct Command {
     pub operations: Vec<Operation>,
     pub outputs: Option<Vec<Output>>,
     pub confirmation: Option<String>,
-    pub command_groups: Option<Vec<CommandGroup>>,
 }
 
 #[cfg_attr(test, derive(serde::Serialize))]
@@ -245,123 +245,46 @@ pub struct AdditionalPropItemSchema {
     pub type_: String,
 }
 
-pub trait CommandHelper {
-    fn help(&self) -> String;
-}
-
-impl CommandHelper for CommandGroup {
-    fn help(&self) -> String {
-        format!(
-            "Available commands: {:?}",
-            self.commands
-                .iter()
-                .map(|c| c.name.clone())
-                .collect::<Vec<String>>()
-        )
-    }
-}
-
-impl CommandHelper for &CommandGroup {
-    fn help(&self) -> String {
-        (*self).help()
-    }
-}
-
-impl CommandHelper for Command {
-    fn help(&self) -> String {
-        format!(
-            "Available arguments:\n\n{}",
-            self.arg_groups
-                .iter()
-                .flat_map(|c| c.args.iter().map(|arg| format!(
-                    "- {}: {}",
-                    arg.options.join(","),
-                    arg.type_
-                )))
-                .collect::<Vec<String>>()
-                .join("\n")
-        )
-    }
-}
-
-impl CommandHelper for &Command {
-    fn help(&self) -> String {
-        (*self).help()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum CommandOrCommandGroup {
-    Command(Command),
-    CommandGroup(CommandGroup),
-}
-
-impl CommandOrCommandGroup {
-    pub fn as_command(&self) -> &Command {
-        match self {
-            CommandOrCommandGroup::Command(c) => c,
-            CommandOrCommandGroup::CommandGroup(_) => panic!("this is a CommandGroup"),
-        }
-    }
-
-    pub fn as_command_group(&self) -> &CommandGroup {
-        match self {
-            CommandOrCommandGroup::Command(_) => panic!("this is a Command"),
-            CommandOrCommandGroup::CommandGroup(cg) => cg,
-        }
-    }
-}
-
 impl Metadata {
-    pub fn resolve_command_or_command_group(
-        &self,
-        input: &CliInput,
-    ) -> Result<CommandOrCommandGroup> {
+    pub fn resolve_command(&self, input: &CliInput) -> Result<Command> {
         if input.is_empty() {
             bail!("empty CLI input");
         }
 
         let args = input.pos_args();
         let mut args = args.iter();
+        // Iterate over the first rp arg
+        args.next();
 
-        // The first is a command group name
-        let mut cg = self
-            .command_groups
-            .iter()
-            .find(|c| c.name.as_str() == *args.next().unwrap())
-            .cloned();
-        let mut c: Option<Command> = None;
+        let mut cg = CommandGroup {
+            command_groups: Some(self.command_groups.clone()),
+            ..CommandGroup::default()
+        };
 
-        let mut unknown_arg = "";
         while let Some(arg) = args.next() {
-            if cg.is_some() {
-                c = cg
-                    .unwrap()
-                    .commands
-                    .iter()
-                    .find(|c| c.name.as_str() == *arg)
-                    .cloned();
-                cg = None;
-            } else if c.is_some() {
-                cg = c.unwrap().command_groups.and_then(|cg| {
-                    cg.iter()
-                        .find(|c| c.name.as_str() == *args.next().unwrap())
-                        .cloned()
-                });
-                c = None;
+            if let Some(v) = cg
+                .command_groups
+                .and_then(|cgs| cgs.iter().find(|cg| cg.name.as_str() == *arg).cloned())
+            {
+                cg = v;
+            } else if let Some(v) = cg
+                .commands
+                .iter()
+                .find(|c| c.name.as_str() == *arg)
+                .cloned()
+            {
+                // Command must be the last positional argument
+                if let Some(arg) = args.next() {
+                    return Err(anyhow!("unknown argument {}", arg));
+                } else {
+                    return Ok(v);
+                }
             } else {
-                unknown_arg = arg;
-                break;
+                return Err(anyhow!("unknown argument {}", arg));
             }
         }
 
-        if let Some(c) = c {
-            Ok(CommandOrCommandGroup::Command(c))
-        } else if let Some(cg) = cg {
-            Ok(CommandOrCommandGroup::CommandGroup(cg))
-        } else {
-            Err(anyhow!("unknown argument {}", unknown_arg))
-        }
+        return Err(anyhow!("this isn't a command"));
     }
 }
 

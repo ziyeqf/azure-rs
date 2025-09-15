@@ -18,11 +18,9 @@ impl ApiManager {
         let pos_args = cli_input.pos_args();
         pos_args
             .first()
-            .ok_or(anyhow::anyhow!(
-                "no positional argument specified from the CLI input"
-            ))
-            .and_then(|group| {
-                let metadata = self.read_metadata(group)?;
+            .ok_or(anyhow::anyhow!("the rp is not specified"))
+            .and_then(|rp| {
+                let metadata = self.read_metadata(rp)?;
                 Ok(Ctx::new(metadata, cli_input.clone()))
             })?
     }
