@@ -53,8 +53,17 @@ pub struct CommandInvocation {
 }
 
 impl CommandInvocation {
-    pub fn invoke(&self) {
-        todo!()
+    pub async fn invoke(&self, client: &crate::client::Client) -> anyhow::Result<serde_json::Value> {
+        if self.metadata.operations.is_empty() {
+            anyhow::bail!("No operation found for command {}", self.metadata.name);
+        }
+        let operation = self.metadata.operations.first().unwrap();
+        let operation_ionvocation = OperationInvocation {
+            metadata: operation.clone(),
+            args: self.args.clone(),
+            ctx_args: HashMap::new(),
+        };
+        operation_ionvocation.invoke(client).await
     }
 }
 
@@ -65,7 +74,7 @@ pub struct OperationInvocation {
 }
 
 impl OperationInvocation {
-    pub async fn invoke(&self, client: &crate::client::Client) -> anyhow::Result<()> {
+    pub async fn invoke(&self, client: &crate::client::Client) -> anyhow::Result<serde_json::Value> {
         if let Some(http) = &self.metadata.http {
             let mut path = http.path.clone();
             for param in &http.request.path.params {
@@ -97,20 +106,21 @@ impl OperationInvocation {
             for response_meta in &http.responses {
                 if let Some(status_codes) = &response_meta.status_code {
                     if status_codes.contains(&(u16::from(response.status_code) as i64)) {
-                        if let Some(json_meta) = response_meta.body.as_ref().map(|body| &body.json) {
-                            if let Some(schema) = &json_meta.schema {
-                                let v: serde_json::Value = serde_json::from_slice(&response.body)?;
-                                println!("{}", serde_json::to_string_pretty(&v)?);
-                                return Ok(());
-                            }
-                        }
+                        // if let Some(json_meta) = response_meta.body.as_ref().map(|body| &body.json) {
+                        //     if let Some(schema) = &json_meta.schema {
+                        //         let v: serde_json::Value = serde_json::from_slice(&response.body)?;
+                        //         println!("{}", serde_json::to_string_pretty(&v)?);
+                        //         return Ok(());
+                        //     }
+                        // }
+                        return Ok(serde_json::from_slice(&response.body)?);
                     }
                 } else if let Some(true) = response_meta.is_error {
                     anyhow::bail!("Error response: {}", String::from_utf8_lossy(&response.body));
                 }
             }
         }
-        todo!()
+        anyhow::bail!("No HTTP information found for this operation");
     }
 
     fn build_value(
