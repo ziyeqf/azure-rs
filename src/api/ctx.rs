@@ -1,4 +1,4 @@
-use crate::api::metadata::{self, CommandHelper, CommandOrCommandGroup, Http, Metadata};
+use crate::api::metadata::{self, Command, Http, Metadata};
 use crate::arg::{Arg, CliInput};
 use crate::client::Client;
 use anyhow::{anyhow, bail, Context, Result};
@@ -9,54 +9,40 @@ use serde_json::{Map, Value};
 #[derive(Debug)]
 pub struct Ctx {
     cli_input: CliInput,
-    c_or_cg: CommandOrCommandGroup,
+    c: Command,
 }
 
 impl Ctx {
     pub fn new(metadata: Metadata, cli_input: CliInput) -> Result<Self> {
-        let c_or_cg = metadata.resolve_command_or_command_group(&cli_input)?;
-        Ok(Self { cli_input, c_or_cg })
-    }
-
-    pub fn help(&self) -> String {
-        match &self.c_or_cg {
-            CommandOrCommandGroup::Command(c) => c.help(),
-            CommandOrCommandGroup::CommandGroup(cg) => cg.help(),
-        }
+        let c = metadata.resolve_command(&cli_input)?;
+        Ok(Self { cli_input, c })
     }
 
     pub async fn execute(&self, client: &Client) -> Result<String> {
-        match &self.c_or_cg {
-            CommandOrCommandGroup::Command(c) => {
-                if c.operations.len() != 1 {
-                    // TODO: support more than one operations
-                    bail!("only support 1 operation now");
-                }
-                let op = &c.operations[0];
-                if let Some(http) = &op.http {
-                    let api_path = self.build_api_path(http)?;
-                    let api_method = self.build_api_method(http)?;
-                    let api_version = self.build_api_version(http)?;
-                    let api_body = self.build_api_body(http)?;
-                    let resp = client
-                        .run(api_method, &api_path, &api_version, api_body, None)
-                        .await?;
-                    Ok(String::from_utf8(resp.body.to_vec())?)
-                } else {
-                    // TODO: support non http operation
-                    bail!("no http operation found for {}", c.name);
-                }
-            }
-            CommandOrCommandGroup::CommandGroup(cg) => {
-                bail!("command group \"{}\" is not executable", cg.name);
-            }
+        if self.c.operations.len() != 1 {
+            // TODO: support more than one operations
+            bail!("only support 1 operation now");
+        }
+        let op = &self.c.operations[0];
+        if let Some(http) = &op.http {
+            let api_path = self.build_api_path(http)?;
+            let api_method = self.build_api_method(http)?;
+            let api_version = self.build_api_version(http)?;
+            let api_body = self.build_api_body(http)?;
+            let resp = client
+                .run(api_method, &api_path, &api_version, api_body, None)
+                .await?;
+            Ok(String::from_utf8(resp.body.to_vec())?)
+        } else {
+            // TODO: support non http operation
+            bail!("no http operation found for {}", self.c.name);
         }
     }
 
     fn build_api_path(&self, http_desc: &Http) -> Result<String> {
         let (path, req_path) = (&http_desc.path, &http_desc.request.path);
         // Interpolate the path params into the API path.
-        let c = self.c_or_cg.as_command();
+        let c = &self.c;
         let default_arg_group = c
             .arg_groups
             .iter()
@@ -116,7 +102,7 @@ impl Ctx {
     }
 
     fn build_api_body(&self, http_desc: &Http) -> Result<Option<Bytes>> {
-        let c = self.c_or_cg.as_command();
+        let c = &self.c;
         if let Some(body) = &http_desc.request.body {
             if let Some(schema) = &body.json.schema {
                 if let Some(props) = &schema.props {

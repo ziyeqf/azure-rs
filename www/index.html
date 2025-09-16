@@ -224,9 +224,9 @@
         args.push(current.trim());
       }
       
-      // Prepend 'az' if not already present
-      if (args.length === 0 || args[0] !== 'az') {
-        args.unshift('az');
+      // Prepend 'azure' if not already present
+      if (args.length === 0 || args[0] !== 'azure') {
+        args.unshift('azure');
       }
       
       return args;
@@ -247,7 +247,15 @@
         const result = await run_cli(args, tenantId, clientId, clientSecret);
         return result;
       } catch (error) {
-        throw new Error(`CLI execution failed: ${error}`);
+        try {
+            // This is a workaround for the Rust jsfy() function where we always return the debug repr of the error object.
+            // Ideally, in the jsfy() we shall try to use the display repr, and fallback to using debug repr. 
+            error = JSON.parse(error);
+        } catch (e) {}
+        throw new Error(`CLI execution failed:
+
+${error}
+`);
       }
     }
 
