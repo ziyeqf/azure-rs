@@ -3,6 +3,7 @@ use crate::arg::CliInput;
 use anyhow::Result;
 use std::path::PathBuf;
 
+pub mod arg;
 pub mod ctx;
 pub mod metadata;
 

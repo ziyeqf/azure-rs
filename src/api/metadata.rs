@@ -34,6 +34,19 @@ pub enum Method {
     Delete,
 }
 
+impl From<Method> for azure_core::http::Method {
+    fn from(method: Method) -> Self {
+        match method {
+            Method::Head => azure_core::http::Method::Head,
+            Method::Get => azure_core::http::Method::Get,
+            Method::Put => azure_core::http::Method::Put,
+            Method::Patch => azure_core::http::Method::Patch,
+            Method::Post => azure_core::http::Method::Post,
+            Method::Delete => azure_core::http::Method::Delete,
+        }
+    }
+}
+
 #[cfg_attr(test, derive(serde::Serialize))]
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommandGroup {
@@ -226,6 +239,7 @@ pub struct Schema {
     #[serde(rename = "readOnly")]
     pub read_only: Option<bool>,
     pub props: Option<Vec<Schema>>,
+    pub item: Option<Box<Schema>>,
     pub format: Option<ResponseFormat>,
     #[serde(rename = "clientFlatten")]
     pub client_flatten: Option<bool>,
