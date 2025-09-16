@@ -42,68 +42,72 @@ pub fn cmd_api(api_manager: &ApiManager, input: &CliInput) -> Command {
         );
     }
     let rp = pos_args.first().unwrap();
-    if let Ok(metadata) = api_manager.read_metadata(rp) {
-        let mut args = pos_args.iter();
-        let mut command_names = vec![];
+    match api_manager.read_metadata(rp) {
+        Ok(metadata) => {
+            let mut args = pos_args.iter();
+            let mut command_names = vec![];
 
-        // Construct a fake command group here to initiate the following while loop
-        let mut cg = metadata::CommandGroup {
-            name: rp.to_string(),
-            command_groups: Some(metadata.command_groups),
-            ..metadata::CommandGroup::default()
-        };
+            // Construct a fake command group here to initiate the following while loop
+            let mut cg = metadata::CommandGroup {
+                name: rp.to_string(),
+                command_groups: Some(metadata.command_groups),
+                ..metadata::CommandGroup::default()
+            };
 
-        let mut c: Option<metadata::Command> = None;
+            let mut c: Option<metadata::Command> = None;
 
-        while let Some(arg) = args.next() {
-            command_names.push(arg.to_string());
+            while let Some(arg) = args.next() {
+                command_names.push(arg.to_string());
 
-            if let Some(v) = cg
-                .command_groups
-                .clone()
-                .and_then(|cgs| cgs.iter().find(|cg| cg.name.as_str() == *arg).cloned())
-            {
-                cg = v;
-            } else if let Some(v) = cg
-                .commands
-                .iter()
-                .find(|c| c.name.as_str() == *arg)
-                .cloned()
-            {
-                // Stop once we meet a command.
-                // It can happen that there are still remaining positional arguments here, we
-                // tolerate them here as there is no obvious way to handle it correctly during
-                // constructing clap::Command.
-                c = Some(v);
-                break;
+                if let Some(v) = cg
+                    .command_groups
+                    .clone()
+                    .and_then(|cgs| cgs.iter().find(|cg| cg.name.as_str() == *arg).cloned())
+                {
+                    cg = v;
+                } else if let Some(v) = cg
+                    .commands
+                    .iter()
+                    .find(|c| c.name.as_str() == *arg)
+                    .cloned()
+                {
+                    // Stop once we meet a command.
+                    // It can happen that there are still remaining positional arguments here, we
+                    // tolerate them here as there is no obvious way to handle it correctly during
+                    // constructing clap::Command.
+                    c = Some(v);
+                    break;
+                }
             }
-        }
 
-        let mut command_names_rev = command_names.iter().rev();
-        let mut cmd = Command::new(command_names_rev.next().unwrap());
-        if let Some(c) = c {
-            // Construct the last command name as a Command, which contains args
-            cmd = cmd.args(build_args(&c.arg_groups));
-        } else {
-            // Construct the last command name as a CommandGroup, which contains commands and potential
-            // command groups
-            cmd = cmd
-                .subcommands(cg.commands.iter().map(|c| Command::new(c.name.clone())))
-                .subcommand_required(true)
-                .arg_required_else_help(true);
-            if let Some(cgs) = cg.command_groups {
-                cmd = cmd.subcommands(cgs.iter().map(|c| Command::new(c.name.clone())));
+            let mut command_names_rev = command_names.iter().rev();
+            let mut cmd = Command::new(command_names_rev.next().unwrap());
+            if let Some(c) = c {
+                // Construct the last command name as a Command, which contains args
+                cmd = cmd.args(build_args(&c.arg_groups));
+            } else {
+                // Construct the last command name as a CommandGroup, which contains commands and potential
+                // command groups
+                cmd = cmd
+                    .subcommands(cg.commands.iter().map(|c| Command::new(c.name.clone())))
+                    .subcommand_required(true)
+                    .arg_required_else_help(true);
+                if let Some(cgs) = cg.command_groups {
+                    cmd = cmd.subcommands(cgs.iter().map(|c| Command::new(c.name.clone())));
+                }
             }
+            for name in command_names_rev {
+                cmd = Command::new(name.clone())
+                    .subcommand(cmd)
+                    .subcommand_required(true)
+                    .arg_required_else_help(true);
+            }
+            cmd_base().subcommand(cmd_api_base_real().subcommand(cmd))
         }
-        for name in command_names_rev {
-            cmd = Command::new(name.clone())
-                .subcommand(cmd)
-                .subcommand_required(true)
-                .arg_required_else_help(true);
+        Err(err) => {
+            dbg!("subcommand construction failed: {}", err);
+            cmd_base().subcommand(cmd_api_base_real().subcommand(Command::new(rp.to_string())))
         }
-        cmd_base().subcommand(cmd_api_base_real().subcommand(cmd))
-    } else {
-        cmd_base().subcommand(cmd_api_base_real())
     }
 }
 

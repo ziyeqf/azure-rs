@@ -161,7 +161,7 @@ pub struct RequestFormat {
 #[cfg_attr(test, derive(serde::Serialize))]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ResponseFormat {
-    pub template: String,
+    pub template: Option<String>,
 }
 
 #[cfg_attr(test, derive(serde::Serialize))]
