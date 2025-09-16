@@ -4,7 +4,6 @@ use clap::ArgMatches;
 use invoke::CommandInvocation;
 use std::path::PathBuf;
 
-pub mod ctx;
 pub mod invoke;
 pub mod metadata;
 

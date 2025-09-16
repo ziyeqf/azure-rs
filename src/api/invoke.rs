@@ -20,7 +20,7 @@ impl CommandInvocation {
         }
     }
 
-    pub async fn invoke(&self, client: &Client) -> Result<serde_json::Value> {
+    pub async fn invoke(&self, client: &Client) -> Result<String> {
         if self.command.operations.is_empty() {
             bail!("No operation found for command {}", self.command.name);
         }
@@ -43,7 +43,7 @@ impl OperationInvocation {
         }
     }
 
-    pub async fn invoke(&self, client: &crate::client::Client) -> Result<serde_json::Value> {
+    pub async fn invoke(&self, client: &crate::client::Client) -> Result<String> {
         if self.operation.http.is_none() {
             bail!(
                 r#"HTTP information not found for operation "{}""#,
@@ -95,7 +95,7 @@ impl OperationInvocation {
         for response_meta in &http.responses {
             if let Some(status_codes) = &response_meta.status_code {
                 if status_codes.contains(&(u16::from(response.status_code) as i64)) {
-                    return Ok(serde_json::from_slice(&response.body)?);
+                    return Ok(String::from_utf8(response.body.to_vec())?);
                 }
             }
         }
@@ -130,8 +130,6 @@ impl OperationInvocation {
                 if let Some(arg) = &schema.arg {
                     if let Some(value) = self.matches.get_one::<String>(arg) {
                         Ok(Some(serde_json::from_str(value)?))
-                    } else if let Some(true) = schema.required {
-                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
@@ -147,7 +145,11 @@ impl OperationInvocation {
                             bail!(r#"property lacks the "name" in the schema"#,);
                         }
                     }
-                    Ok(Some(serde_json::Value::Object(map)))
+                    if map.is_empty() {
+                        Ok(None)
+                    } else {
+                        Ok(Some(serde_json::Value::Object(map)))
+                    }
                 } else {
                     bail!(r#"object schema lacks both the "arg" and "props" in the schema"#);
                 }
@@ -156,8 +158,6 @@ impl OperationInvocation {
                 if let Some(arg) = &schema.arg {
                     if let Some(value) = self.matches.get_one::<String>(arg) {
                         Ok(Some(serde_json::from_str(value)?))
-                    } else if let Some(true) = schema.required {
-                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
@@ -172,8 +172,6 @@ impl OperationInvocation {
                 if let Some(arg) = &schema.arg {
                     if let Some(value) = self.matches.get_one::<i32>(arg) {
                         Ok(Some((*value).into()))
-                    } else if let Some(true) = schema.required {
-                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
@@ -188,8 +186,6 @@ impl OperationInvocation {
                 if let Some(arg) = &schema.arg {
                     if let Some(value) = self.matches.get_one::<bool>(arg) {
                         Ok(Some((*value).into()))
-                    } else if let Some(true) = schema.required {
-                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
@@ -210,8 +206,6 @@ impl OperationInvocation {
                             Ok(v) => Ok(Some(v)),
                             Err(_) => Ok(Some(serde_json::Value::String(value.clone()))),
                         }
-                    } else if let Some(true) = schema.required {
-                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }

@@ -32,9 +32,9 @@ pub async fn run(p: PathBuf, client: &Client, raw_input: Vec<String>) -> Result<
             while let Some((_, m)) = matches.subcommand() {
                 matches = m.clone();
             }
-            let ctx = api_manager.build_invocation(&input, &matches)?;
-            let res = ctx.invoke(&client).await?;
-            return Ok(res.to_string());
+            let invoker = api_manager.build_invocation(&input, &matches)?;
+            let res = invoker.invoke(&client).await?;
+            return Ok(res);
         }
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     }
