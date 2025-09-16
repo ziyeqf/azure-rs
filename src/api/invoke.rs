@@ -134,7 +134,20 @@ impl OperationInvocation {
                         Ok(Some(serde_json::Value::Object(map)))
                     }
                 } else {
-                    anyhow::bail!("Object schema is not supported without a name");
+                    let mut map = serde_json::Map::new();
+                    if let Some(props) = &schema.props {
+                        for prop in props {
+                            if let Some(prop_name) = &prop.name {
+                                let value = self.build_value(prop)?;
+                                if let Some(value) = value {
+                                    map.insert(prop_name.clone(), value);
+                                }
+                            } else {
+                                anyhow::bail!("Property without a name in object schema");
+                            }
+                        }
+                    }
+                    Ok(Some(serde_json::Value::Object(map)))
                 }
             }
             s if s.starts_with("array") => {
