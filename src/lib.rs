@@ -26,9 +26,12 @@ pub async fn run(p: PathBuf, client: &Client, raw_input: Vec<String>) -> Result<
                 vec![]
             };
             let input = CliInput::new(args)?;
-            let matches = get_matches(cmd::cmd_api(&api_manager, &input), raw_input.clone())?;
+            let mut matches = get_matches(cmd::cmd_api(&api_manager, &input), raw_input.clone())?;
 
             // Invoke the api call
+            while let Some((_, m)) = matches.subcommand() {
+                matches = m.clone();
+            }
             let ctx = api_manager.build_invocation(&input, &matches)?;
             let res = ctx.invoke(&client).await?;
             return Ok(res.to_string());

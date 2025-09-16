@@ -126,7 +126,33 @@ impl OperationInvocation {
 
     fn build_value(&self, schema: Schema) -> Result<Option<serde_json::Value>> {
         match schema.type_.as_str() {
-            s if s.starts_with("array") || s == "object" || s == "string" => {
+            "object" => {
+                if let Some(arg) = &schema.arg {
+                    if let Some(value) = self.matches.get_one::<String>(arg) {
+                        Ok(Some(serde_json::from_str(value)?))
+                    } else if let Some(true) = schema.required {
+                        bail!(r#"required property "{}" is not specified"#, arg);
+                    } else {
+                        Ok(None)
+                    }
+                } else if let Some(props) = &schema.props {
+                    let mut map = serde_json::Map::new();
+                    for prop in props {
+                        if let Some(prop_name) = &prop.name {
+                            let value = self.build_value(prop.clone())?;
+                            if let Some(value) = value {
+                                map.insert(prop_name.clone(), value);
+                            }
+                        } else {
+                            bail!(r#"property lacks the "name" in the schema"#,);
+                        }
+                    }
+                    Ok(Some(serde_json::Value::Object(map)))
+                } else {
+                    bail!(r#"object schema lacks both the "arg" and "props" in the schema"#);
+                }
+            }
+            s if s.starts_with("array") || s == "string" => {
                 if let Some(arg) = &schema.arg {
                     if let Some(value) = self.matches.get_one::<String>(arg) {
                         Ok(Some(serde_json::from_str(value)?))
