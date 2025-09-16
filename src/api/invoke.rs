@@ -77,9 +77,13 @@ impl OperationInvocation {
             query_pairs.insert(param.name.clone(), param.default.value.clone());
         }
         let body: Option<bytes::Bytes> = if let Some(body_meta) = &http.request.body {
+            // TODO: here we assume the body always contains a "parameter" property at the top level
             if let Some(schema) = &body_meta.json.schema {
                 self.build_value(schema.clone())?
+                    .iter().flat_map(|v| v.as_object())
+                    .flat_map(|v| v.get("parameter"))
                     .map(|v| bytes::Bytes::from(v.to_string()))
+                    .next()
             } else {
                 None
             }
