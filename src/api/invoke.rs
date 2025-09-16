@@ -122,7 +122,7 @@ impl OperationInvocation {
                         if let Some(props) = &schema.props {
                             for prop in props {
                                 if let Some(prop_name) = &prop.name {
-                                    let value = self.build_value(prop)?;
+                                    let value = self.build_value(prop.clone())?;
                                     if let Some(value) = value {
                                         map.insert(prop_name.clone(), value);
                                     }
@@ -138,7 +138,7 @@ impl OperationInvocation {
                     if let Some(props) = &schema.props {
                         for prop in props {
                             if let Some(prop_name) = &prop.name {
-                                let value = self.build_value(prop)?;
+                                let value = self.build_value(prop.clone())?;
                                 if let Some(value) = value {
                                     map.insert(prop_name.clone(), value);
                                 }
@@ -152,9 +152,7 @@ impl OperationInvocation {
             }
             s if s.starts_with("array") => {
                 if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.args.get(arg) {
-                        Ok(Some(value.clone()))
-                    } else if let Some(value) = self.matches.get_one::<String>(arg) {
+                    if let Some(value) = self.matches.get_one::<String>(arg) {
                         Ok(Some(serde_json::from_str(value)?))
                     } else if let Some(true) = schema.required {
                         anyhow::bail!("Missing required array property: {}", arg);
@@ -167,9 +165,7 @@ impl OperationInvocation {
             }
             "string" => {
                 if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.args.get(arg) {
-                        Ok(Some(value.clone()))
-                    } else if let Some(value) = self.matches.get_one::<String>(arg) {
+                    if let Some(value) = self.matches.get_one::<String>(arg) {
                         Ok(Some(serde_json::Value::String(value.clone())))
                     } else if let Some(true) = schema.required {
                         anyhow::bail!("Missing required string property: {}", arg);
@@ -182,9 +178,7 @@ impl OperationInvocation {
             }
             s if s.starts_with("integer") => {
                 if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.args.get(arg) {
-                        Ok(Some(value.clone()))
-                    } else if let Some(value) = self.matches.get_one::<i32>(arg) {
+                    if let Some(value) = self.matches.get_one::<i32>(arg) {
                         Ok(Some((*value).into()))
                     } else if let Some(true) = schema.required {
                         anyhow::bail!("Missing required integer property: {}", arg);
@@ -197,9 +191,7 @@ impl OperationInvocation {
             }
             "boolean" => {
                 if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.args.get(arg) {
-                        Ok(Some(value.clone()))
-                    } else if let Some(value) = self.matches.get_one::<bool>(arg) {
+                    if let Some(value) = self.matches.get_one::<bool>(arg) {
                         Ok(Some((*value).into()))
                     } else if let Some(true) = schema.required {
                         anyhow::bail!("Missing required boolean property: {}", arg);
@@ -213,9 +205,7 @@ impl OperationInvocation {
             _ => {
                 // We suppose any other type as a json value first, if failed, try to parse it as a string
                 if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.args.get(arg) {
-                        Ok(Some(value.clone()))
-                    } else if let Some(value) = self.matches.get_one::<String>(arg) {
+                    if let Some(value) = self.matches.get_one::<String>(arg) {
                         match serde_json::from_str(value) {
                             Ok(v) => Ok(Some(v)),
                             Err(_) => Ok(Some(serde_json::Value::String(value.clone()))),
