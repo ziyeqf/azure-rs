@@ -1,10 +1,11 @@
-use crate::api::ctx::Ctx;
 use crate::arg::CliInput;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use clap::ArgMatches;
+use invoke::CommandInvocation;
 use std::path::PathBuf;
 
-pub mod invoke;
 pub mod ctx;
+pub mod invoke;
 pub mod metadata;
 
 #[derive(Debug, Clone)]
@@ -15,15 +16,19 @@ pub struct ApiManager {
 }
 
 impl ApiManager {
-    pub fn build_ctx(&self, cli_input: &CliInput) -> Result<Ctx> {
-        let pos_args = cli_input.pos_args();
+    pub fn build_invocation(
+        &self,
+        raw_input: &CliInput,
+        matches: &ArgMatches,
+    ) -> Result<CommandInvocation> {
+        let pos_args = raw_input.pos_args();
         pos_args
             .first()
-            .ok_or(anyhow::anyhow!("the rp is not specified"))
+            .ok_or(anyhow!("the rp is not specified"))
             .and_then(|rp| {
-                let metadata = self.read_metadata(rp)?;
-                Ok(Ctx::new(metadata, cli_input.clone()))
-            })?
+                let c = self.read_metadata(rp)?.resolve_command(&raw_input)?;
+                Ok(CommandInvocation::new(&c, matches))
+            })
     }
 }
 

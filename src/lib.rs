@@ -26,12 +26,12 @@ pub async fn run(p: PathBuf, client: &Client, raw_input: Vec<String>) -> Result<
                 vec![]
             };
             let input = CliInput::new(args)?;
-            let _ = get_matches(cmd::cmd_api(&api_manager, &input), raw_input.clone())?;
+            let matches = get_matches(cmd::cmd_api(&api_manager, &input), raw_input.clone())?;
 
             // Invoke the api call
-            let ctx = api_manager.build_ctx(&input)?;
-            let res = ctx.execute(&client).await?;
-            return Ok(res);
+            let ctx = api_manager.build_invocation(&input, &matches)?;
+            let res = ctx.invoke(&client).await?;
+            return Ok(res.to_string());
         }
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     }

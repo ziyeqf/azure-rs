@@ -43,12 +43,9 @@ impl OperationInvocation {
         }
     }
 
-    pub async fn invoke(
-        &self,
-        client: &crate::client::Client,
-    ) -> anyhow::Result<serde_json::Value> {
+    pub async fn invoke(&self, client: &crate::client::Client) -> Result<serde_json::Value> {
         if self.operation.http.is_none() {
-            anyhow::bail!(
+            bail!(
                 r#"HTTP information not found for operation "{}""#,
                 self.operation
                     .operation_id
@@ -63,7 +60,7 @@ impl OperationInvocation {
             if let Some(value) = self.matches.get_one::<String>(&param.arg) {
                 path = path.replace(&format!("{{{}}}", param.name), value);
             } else if let Some(true) = param.required {
-                anyhow::bail!("missing required path parameter: {}", param.name);
+                bail!("missing required path parameter: {}", param.name);
             } else {
                 unreachable!(
                     r#"optional path parameter "{}" not supported yet!"#,
@@ -77,13 +74,9 @@ impl OperationInvocation {
             query_pairs.insert(param.name.clone(), param.default.value.clone());
         }
         let body: Option<bytes::Bytes> = if let Some(body_meta) = &http.request.body {
-            // TODO: here we assume the body always contains a "parameter" property at the top level
             if let Some(schema) = &body_meta.json.schema {
-                self.build_value(schema.clone())?
-                    .iter().flat_map(|v| v.as_object())
-                    .flat_map(|v| v.get("parameter"))
+                self.build_body(schema.clone())?
                     .map(|v| bytes::Bytes::from(v.to_string()))
-                    .next()
             } else {
                 None
             }
@@ -106,78 +99,47 @@ impl OperationInvocation {
                 }
             }
         }
-        anyhow::bail!(
+        bail!(
             "error response: {}\n\n{}",
             response.status_code,
             String::from_utf8_lossy(&response.body)
         );
     }
 
+    fn build_body(&self, schema: Schema) -> Result<Option<serde_json::Value>> {
+        if let Some(props) = &schema.props {
+            let mut map = serde_json::Map::new();
+            for prop in props {
+                if let Some(prop_name) = &prop.name {
+                    let value = self.build_value(prop.clone())?;
+                    if let Some(value) = value {
+                        map.insert(prop_name.clone(), value);
+                    }
+                } else {
+                    bail!(r#"property lacks the "name" in the schema"#,);
+                }
+            }
+            return Ok(Some(serde_json::Value::Object(map)));
+        }
+        bail!(r#"schema lacks the "props" in the schema"#);
+    }
+
     fn build_value(&self, schema: Schema) -> Result<Option<serde_json::Value>> {
         match schema.type_.as_str() {
-            "object" => {
+            s if s.starts_with("array") || s == "object" || s == "string" => {
                 if let Some(arg) = &schema.arg {
                     if let Some(value) = self.matches.get_one::<String>(arg) {
                         Ok(Some(serde_json::from_str(value)?))
                     } else if let Some(true) = schema.required {
-                        anyhow::bail!("missing required object property: {}", arg);
-                    } else {
-                        let mut map = serde_json::Map::new();
-                        if let Some(props) = &schema.props {
-                            for prop in props {
-                                if let Some(prop_name) = &prop.name {
-                                    let value = self.build_value(prop.clone())?;
-                                    if let Some(value) = value {
-                                        map.insert(prop_name.clone(), value);
-                                    }
-                                } else {
-                                    anyhow::bail!("Property without a name in object schema");
-                                }
-                            }
-                        }
-                        Ok(Some(serde_json::Value::Object(map)))
-                    }
-                } else {
-                    let mut map = serde_json::Map::new();
-                    if let Some(props) = &schema.props {
-                        for prop in props {
-                            if let Some(prop_name) = &prop.name {
-                                let value = self.build_value(prop.clone())?;
-                                if let Some(value) = value {
-                                    map.insert(prop_name.clone(), value);
-                                }
-                            } else {
-                                anyhow::bail!("Property without a name in object schema");
-                            }
-                        }
-                    }
-                    Ok(Some(serde_json::Value::Object(map)))
-                }
-            }
-            s if s.starts_with("array") => {
-                if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.matches.get_one::<String>(arg) {
-                        Ok(Some(serde_json::from_str(value)?))
-                    } else if let Some(true) = schema.required {
-                        anyhow::bail!("Missing required array property: {}", arg);
+                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
                 } else {
-                    anyhow::bail!("Array schema is not supported without a name");
-                }
-            }
-            "string" => {
-                if let Some(arg) = &schema.arg {
-                    if let Some(value) = self.matches.get_one::<String>(arg) {
-                        Ok(Some(serde_json::Value::String(value.clone())))
-                    } else if let Some(true) = schema.required {
-                        anyhow::bail!("Missing required string property: {}", arg);
-                    } else {
-                        Ok(None)
-                    }
-                } else {
-                    anyhow::bail!("Array schema is not supported without a name");
+                    bail!(
+                        r#"schema "{}" lacks the "arg" in the schema"#,
+                        schema.name.unwrap_or("".to_string())
+                    );
                 }
             }
             s if s.starts_with("integer") => {
@@ -185,12 +147,15 @@ impl OperationInvocation {
                     if let Some(value) = self.matches.get_one::<i32>(arg) {
                         Ok(Some((*value).into()))
                     } else if let Some(true) = schema.required {
-                        anyhow::bail!("Missing required integer property: {}", arg);
+                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
                 } else {
-                    anyhow::bail!("Array schema is not supported without a name");
+                    bail!(
+                        r#"schema "{}" lacks the "arg" in the schema"#,
+                        schema.name.unwrap_or("".to_string())
+                    );
                 }
             }
             "boolean" => {
@@ -198,14 +163,19 @@ impl OperationInvocation {
                     if let Some(value) = self.matches.get_one::<bool>(arg) {
                         Ok(Some((*value).into()))
                     } else if let Some(true) = schema.required {
-                        anyhow::bail!("Missing required boolean property: {}", arg);
+                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
                 } else {
-                    anyhow::bail!("Array schema is not supported without a name");
+                    bail!(
+                        r#"schema "{}" lacks the "arg" in the schema"#,
+                        schema.name.unwrap_or("".to_string())
+                    );
                 }
             }
+            // TODO: We shall handle float and other potential types in the metadata.
+            //       Then fail the other cases.
             _ => {
                 // We suppose any other type as a json value first, if failed, try to parse it as a string
                 if let Some(arg) = &schema.arg {
@@ -215,12 +185,15 @@ impl OperationInvocation {
                             Err(_) => Ok(Some(serde_json::Value::String(value.clone()))),
                         }
                     } else if let Some(true) = schema.required {
-                        anyhow::bail!("Missing required property: {}", arg);
+                        bail!(r#"required property "{}" is not specified"#, arg);
                     } else {
                         Ok(None)
                     }
                 } else {
-                    anyhow::bail!("Schema is not supported without a name");
+                    bail!(
+                        r#"schema "{}" lacks the "arg" in the schema"#,
+                        schema.name.unwrap_or("".to_string())
+                    );
                 }
             }
         }
