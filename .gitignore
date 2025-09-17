@@ -2,19 +2,6 @@
 
 /metadata
 
-# Logs
-www/logs
-www/*.log
-www/npm-debug.log*
-www/yarn-debug.log*
-www/yarn-error.log*
-www/pnpm-debug.log*
-www/lerna-debug.log*
-www/node_modules
-www/dist
-www/dist-ssr
-www/*.local
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
