@@ -25,4 +25,4 @@ dist-ssr
 
 
 # generated during compiling time
-src/wasm/
+src/wasm/*
