@@ -1,5 +1,6 @@
 use azure_core::credentials::TokenRequestOptions;
 use azure_core::credentials::{AccessToken, TokenCredential};
+use azure_core::time::{Duration, OffsetDateTime};
 use azure_core::Result;
 use std::{str, sync::Arc};
 
@@ -12,7 +13,10 @@ pub struct AccessTokenCredential {
 impl AccessTokenCredential {
     pub fn new(token: String) -> Result<Arc<Self>> {
         Ok(Arc::new(Self {
-            token: serde_json::from_str(&token)?,
+            token: AccessToken {
+                token: token.into(),
+                expires_on: OffsetDateTime::now_utc() + Duration::hours(1),
+            },
         }))
     }
 }
