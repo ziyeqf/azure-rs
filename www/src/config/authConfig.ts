@@ -67,15 +67,7 @@ export const graphConfig = {
 export const azureScopes = {
     // Azure Resource Manager API
     management: ["https://management.azure.com/user_impersonation"],
-    
-    // Microsoft Graph API
-    graph: ["https://graph.microsoft.com/User.Read"],
-    
-    // Azure Key Vault (example)
-    keyVault: ["https://vault.azure.net/user_impersonation"],
-    
-    // Azure Storage (example)
-    storage: ["https://storage.azure.com/user_impersonation"],
+
 };
 
 /**
@@ -85,9 +77,5 @@ export const tokenRequests = {
     azureManagement: {
         scopes: azureScopes.management,
         account: null, // Will be set dynamically
-    },
-    microsoftGraph: {
-        scopes: azureScopes.graph,
-        account: null, // Will be set dynamically
-    },
+    }
 };
