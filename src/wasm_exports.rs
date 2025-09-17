@@ -1,7 +1,6 @@
+use crate::azidentityext::access_token_credential::AccessTokenCredential;
 use crate::client::Client;
 use crate::run;
-use azure_core::credentials::Secret;
-use azure_identity::ClientSecretCredential;
 use std::fmt::Debug;
 use std::{path::PathBuf, result::Result};
 use wasm_bindgen::prelude::*;
