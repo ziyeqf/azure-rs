@@ -103,7 +103,6 @@ export const AzureCLIInterface: React.FC = () => {
       // Note: For MSAL authentication, we don't have client_id and secret in the traditional sense
       // The WASM module might need to be updated to handle access tokens instead
       // For now, we'll pass the access token as the secret parameter
-      console.log(args, accessToken);
       const result = await wasmModule.run_cli(
         args,
 
