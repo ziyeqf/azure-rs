@@ -67,10 +67,13 @@ export const AzureCLIInterface: React.FC = () => {
       args.push(current.trim());
     }
     
-    // Remove 'az' prefix if present, as the WASM module handles this
-    if (args.length > 0 && args[0] === 'az') {
+    // Remove 'az' prefix if present and ensure 'azure' is the first element
+    if (args.length > 0 && args[0] === 'azure') {
       args.shift();
     }
+    
+    // Always ensure 'azure' is the first element
+    args.unshift('azure');
     
     return args;
   };
@@ -158,7 +161,7 @@ export const AzureCLIInterface: React.FC = () => {
       <div className="command-input-section">
         <label htmlFor="cli-command">Azure CLI Command:</label>
         <div className="input-group">
-          <span className="command-prefix">az</span>
+          <span className="command-prefix">azure</span>
           <input
             type="text"
             id="cli-command"

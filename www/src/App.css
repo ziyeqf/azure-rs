@@ -12,11 +12,16 @@
   margin-bottom: 2rem;
   padding: 1rem;
   border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+  gap: 1rem;
+  min-height: 60px;
 }
 
 .app-header h1 {
   margin: 0;
   color: #0078d4;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .auth-button-container {
@@ -24,6 +29,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .auth-button {
@@ -34,6 +40,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 .auth-button.login {
@@ -384,6 +392,7 @@
   overflow-y: auto;
   border: 1px solid #4a5568;
   margin: 0;
+  text-align: left;
 }
 
 .cli-output.loading {
@@ -510,6 +519,44 @@
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
+  }
+}
+
+/* Responsive styles for better layout */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2rem;
+  }
+  
+  .auth-button-container {
+    align-items: center;
+  }
+  
+  .auth-button {
+    font-size: 0.9rem;
+    padding: 0.6rem 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .auth-button {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  #root {
+    padding: 1rem;
   }
 }
 
