@@ -168,14 +168,12 @@ export const AzureCLIInterface: React.FC = () => {
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="resource-group list"
+            placeholder="help"
             disabled={!wasmReady || loading}
             className="cli-input"
           />
         </div>
         <div className="input-help">
-          Examples: "resource-group list", "vm list", "storage account list"
-          <br />
           Press Ctrl+Enter to execute
         </div>
       </div>
