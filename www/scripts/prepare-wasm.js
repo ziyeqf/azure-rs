@@ -22,6 +22,32 @@ const TARGET_JS = path.join(TARGET_DIR, 'azure.js');
 const TARGET_DTS = path.join(TARGET_DIR, 'azure.d.ts');
 const PUBLIC_PKG_DIR = path.join(__dirname, '../public/pkg');
 
+function getViteBasePath() {
+  try {
+    const viteConfigPath = path.join(__dirname, '../vite.config.ts');
+    if (!fs.existsSync(viteConfigPath)) {
+      console.log('⚠️  vite.config.ts not found, using default base path');
+      return '/';
+    }
+    
+    const configContent = fs.readFileSync(viteConfigPath, 'utf8');
+    
+    // Simple regex to extract base path from vite config
+    const baseMatch = configContent.match(/base:\s*['"`]([^'"`]+)['"`]/);
+    if (baseMatch) {
+      const basePath = baseMatch[1];
+      console.log(`📁 Found Vite base path: ${basePath}`);
+      return basePath;
+    }
+    
+    console.log('📁 No base path found in vite.config.ts, using default');
+    return '/';
+  } catch (error) {
+    console.log(`⚠️  Error reading vite.config.ts: ${error.message}, using default base path`);
+    return '/';
+  }
+}
+
 function ensureDirectoryExists(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -74,9 +100,15 @@ function copyAndModifyJsFile() {
     // Read the original file
     const content = fs.readFileSync(SOURCE_JS, 'utf8');
     
+    // Get the Vite base path
+    const basePath = getViteBasePath();
+    
     // Check if compressed WASM file exists
     const compressedWasmExists = fs.existsSync(`${SOURCE_WASM}.br`);
-    const wasmPath = compressedWasmExists ? '/pkg/azure_bg.wasm.br' : '/pkg/azure_bg.wasm';
+    
+    // Construct the WASM path with base path
+    const wasmFileName = compressedWasmExists ? 'azure_bg.wasm.br' : 'azure_bg.wasm';
+    const wasmPath = basePath === '/' ? `/pkg/${wasmFileName}` : `${basePath}pkg/${wasmFileName}`;
     
     console.log(`📝 Using WASM path: ${wasmPath}`);
     
