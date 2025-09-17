@@ -1,6 +1,6 @@
 // WASM module types
 export interface WasmModule {
-  run_cli: (args: string[], tenant_id: string, client_id: string, secret: string) => Promise<string>;
+  run_cli: (args: string[],  token: string) => Promise<string>;
 }
 
 // Simple cache to avoid re-initializing

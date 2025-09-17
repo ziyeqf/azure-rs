@@ -99,16 +99,14 @@ export const AzureCLIInterface: React.FC = () => {
       const args = parseCliCommand(command);
       console.log('Executing command with args:', args);
 
-      // Extract tenant ID from account
-      const tenantId = account.tenantId || '';
       
       // Note: For MSAL authentication, we don't have client_id and secret in the traditional sense
       // The WASM module might need to be updated to handle access tokens instead
       // For now, we'll pass the access token as the secret parameter
+      console.log(args, accessToken);
       const result = await wasmModule.run_cli(
         args,
-        tenantId,
-        '', // client_id - empty for MSAL flow
+
         accessToken // Using access token instead of client secret
       );
 
