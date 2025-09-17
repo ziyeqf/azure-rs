@@ -1,37 +1,40 @@
-use crate::api::ctx::Ctx;
 use crate::arg::CliInput;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use clap::ArgMatches;
+use invoke::CommandInvocation;
 use std::path::PathBuf;
 
-pub mod ctx;
+pub mod invoke;
 pub mod metadata;
 
 #[derive(Debug, Clone)]
 pub struct ApiManager {
-    // This is not needed when embed-api or for wasm32.
     #[allow(dead_code)]
     path: PathBuf,
+    rps: Vec<String>,
 }
 
 impl ApiManager {
-    pub fn build_ctx(&self, cli_input: &CliInput) -> Result<Ctx> {
-        let pos_args = cli_input.pos_args();
+    pub fn build_invocation(
+        &self,
+        raw_input: &CliInput,
+        matches: &ArgMatches,
+    ) -> Result<CommandInvocation> {
+        let pos_args = raw_input.pos_args();
         pos_args
             .first()
-            .ok_or(anyhow::anyhow!(
-                "no positional argument specified from the CLI input"
-            ))
-            .and_then(|group| {
-                let metadata = self.read_metadata(group)?;
-                Ok(Ctx::new(metadata, cli_input.clone()))
-            })?
+            .ok_or(anyhow!("the rp is not specified"))
+            .and_then(|rp| {
+                let c = self.read_metadata(rp)?.resolve_command(&raw_input)?;
+                Ok(CommandInvocation::new(&c, matches))
+            })
     }
 }
 
 #[cfg(any(feature = "embed-api", target_arch = "wasm32"))]
 mod embedded {
     use crate::api::metadata::Metadata;
-    use anyhow::{Result, anyhow};
+    use anyhow::{anyhow, Result};
     use std::path::PathBuf;
 
     use rust_embed::RustEmbed;
@@ -41,16 +44,18 @@ mod embedded {
     struct Asset;
 
     impl super::ApiManager {
-        pub fn new(_: PathBuf) -> Self {
-            Self {
+        pub fn new(_: PathBuf) -> Result<Self> {
+            let rps: Vec<String> = Asset::names()
+                .map(|name| name.trim_end_matches(".json").to_string())
+                .collect();
+            Ok(Self {
                 path: PathBuf::new(),
-            }
+                rps,
+            })
         }
 
-        pub fn list_rps(&self) -> Result<Vec<String>> {
-            Ok(Asset::names()
-                .map(|name| name.trim_end_matches(".json").to_string())
-                .collect())
+        pub fn list_rps(&self) -> &Vec<String> {
+            &self.rps
         }
 
         pub fn read_metadata(&self, rp: &str) -> Result<Metadata> {
@@ -71,16 +76,12 @@ mod fs {
     use std::fs::read;
 
     impl super::ApiManager {
-        pub fn new(path: PathBuf) -> Self {
-            Self { path }
-        }
-
-        pub fn list_rps(&self) -> Result<Vec<String>> {
+        pub fn new(path: PathBuf) -> Result<Self> {
+            // TODO: Validate the path
             let mut rps = vec![];
-            for entry in self
-                .path
+            for entry in path
                 .read_dir()
-                .context(format!("reading dir {}", self.path.display()))?
+                .context(format!("reading dir {}", path.display()))?
             {
                 let path = entry?.path();
                 if let Some(ext) = path.extension() {
@@ -91,7 +92,11 @@ mod fs {
                     }
                 }
             }
-            Ok(rps)
+            Ok(Self { path, rps })
+        }
+
+        pub fn list_rps(&self) -> &Vec<String> {
+            &self.rps
         }
 
         pub fn read_metadata(&self, rp: &str) -> Result<Metadata> {

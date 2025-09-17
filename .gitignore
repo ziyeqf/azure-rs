@@ -1,4 +1,5 @@
 /target
+
 /metadata
 
 # Logs
@@ -9,7 +10,6 @@ www/yarn-debug.log*
 www/yarn-error.log*
 www/pnpm-debug.log*
 www/lerna-debug.log*
-
 www/node_modules
 www/dist
 www/dist-ssr
